@@ -1,0 +1,3 @@
+# Liquipedia
+
+Liquipedia API Connector
