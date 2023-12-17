@@ -7,3 +7,5 @@
 # Build files
 /dist
 /data
+
+.DS_Store

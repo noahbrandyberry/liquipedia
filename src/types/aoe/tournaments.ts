@@ -1,10 +1,11 @@
+import { Country } from "./country";
+
 export type TournamentCategory =
   | Age1TournamentCategory
   | Age2TournamentCategory
   | Age3TournamentCategory;
 
 export enum Age1TournamentCategory {
-  All = "Age_of_Empires_I/Tournaments",
   TierS = "Age_of_Empires_I/S-Tier_Tournaments",
   TierA = "Age_of_Empires_I/A-Tier_Tournaments",
   TierB = "Age_of_Empires_I/B-Tier_Tournaments",
@@ -14,7 +15,6 @@ export enum Age1TournamentCategory {
 }
 
 export enum Age2TournamentCategory {
-  All = "Age_of_Empires_II/Tournaments",
   TierS = "Age_of_Empires_II/S-Tier_Tournaments",
   TierA = "Age_of_Empires_II/A-Tier_Tournaments",
   TierB = "Age_of_Empires_II/B-Tier_Tournaments",
@@ -28,7 +28,6 @@ export enum Age2TournamentCategory {
 }
 
 export enum Age3TournamentCategory {
-  All = "Age_of_Empires_III/Tournaments",
   TierS = "Age_of_Empires_III/S-Tier_Tournaments",
   TierA = "Age_of_Empires_III/A-Tier_Tournaments",
   TierB = "Age_of_Empires_III/B-Tier_Tournaments",
@@ -38,7 +37,6 @@ export enum Age3TournamentCategory {
 }
 
 export enum Age4TournamentCategory {
-  All = "Age_of_Empires_IV/Tournaments",
   TierS = "Age_of_Empires_IV/S-Tier_Tournaments",
   TierA = "Age_of_Empires_IV/A-Tier_Tournaments",
   TierB = "Age_of_Empires_IV/B-Tier_Tournaments",
@@ -52,7 +50,6 @@ export enum Age4TournamentCategory {
 }
 
 export enum AgeOnlineTournamentCategory {
-  All = "Age_of_Empires_Online/Tournaments",
   Tier = "Age_of_Empires_Online/Tier_Tournaments",
   ShowMatches = "Age_of_Empires_Online/Showmatches",
 }
@@ -69,20 +66,91 @@ export enum TournamentType {
   Individual = "Individual",
 }
 
+export enum TournamentLocationType {
+  LAN = "LAN",
+  Online = "Online",
+}
+
 export interface Tournament {
   type: TournamentType;
   tier: TournamentCategory;
   status: TournamentStatus;
   name: string;
-  url: string;
-  dates: string;
+  path: string;
+  start?: Date;
+  end?: Date;
   participants: number;
-  prizePool: string;
-  hostLocation?: string;
+  prizePool?: { amount: number; code: "USD" };
+  location?: {
+    name: string;
+    country?: Country;
+    type: TournamentLocationType;
+  };
   winner?: string;
   runnerUp?: string;
   league?: {
     name: string;
-    imageUrl?: string;
+    image?: string;
   };
+}
+
+export interface EventPlayer {
+  name?: string;
+  civilization?: string;
+  country?: Country;
+}
+
+export interface EventParticipant {
+  name: string;
+  score?: number | string;
+  image?: string;
+}
+
+export interface Event {
+  date: Date;
+  participants: [EventParticipant, EventParticipant];
+}
+
+interface Link {
+  url: string;
+  image: string;
+  text: string;
+}
+
+export interface PlayoffGame {
+  map: string;
+  players?: [EventPlayer[], EventPlayer[]];
+  winner?: 0 | 1;
+}
+
+export interface PlayoffMatch {
+  name?: string;
+  participants: [EventParticipant, EventParticipant];
+  winner?: 0 | 1;
+  startTime?: Date;
+  twitchStream?: string;
+  note?: string;
+  links: Link[];
+  games: PlayoffGame[];
+}
+
+export interface PlayoffRound {
+  name: string;
+  format?: string;
+  matches: PlayoffMatch[];
+}
+
+export interface Tab {
+  name: string;
+  path: string;
+  active: boolean;
+}
+
+export interface TournamentDetail extends Tournament {
+  description: string;
+  format: string;
+  rules: string;
+  schedule: Event[];
+  playoffs: Array<PlayoffRound[]>;
+  tabs: Array<Tab[]>;
 }

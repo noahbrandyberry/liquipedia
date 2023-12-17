@@ -9,9 +9,9 @@ import { AOEApi } from "../api/aoe";
 import { AOEParser } from "../parser/aoe";
 import {
   Tournament,
-  TournamentStatus,
   TournamentCategory,
   Age2TournamentCategory,
+  TournamentDetail,
 } from "../types/aoe/tournaments";
 import { Item } from "../types/aoe/item";
 
@@ -70,5 +70,10 @@ export class AOEClient {
   ): Promise<Tournament[]> {
     const response = await this.api.getTournaments(tournamentType);
     return this.parser.parseTournaments(response.parse.text["*"]);
+  }
+
+  async getTournament(path: string): Promise<TournamentDetail> {
+    const response = await this.api.getTournament(path);
+    return this.parser.parseTournament(response.parse.text["*"], path);
   }
 }

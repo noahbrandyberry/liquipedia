@@ -14,10 +14,19 @@ import {
   TournamentStatus,
   TournamentCategory,
   TournamentType,
+  TournamentLocationType,
+  TournamentDetail,
+  Age2TournamentCategory,
 } from "../types/aoe/tournaments";
 import { parse } from "../common/parse";
+import { parse as dateParse } from "date-fns";
 import { Match, MatchStatus } from "../types/aoe/match";
 import { Player } from "../types/aoe/player";
+import { countries } from "../data/countries";
+import { Game } from "../types/games";
+import { NodeHtmlMarkdown } from "node-html-markdown";
+import { parsePlayoffColumn } from "./aoe/tournament";
+import { imageUrl } from "../data/image";
 
 export class AOEParser {
   parseTeams(teamsResponse: string): Team[] {
@@ -189,22 +198,20 @@ export class AOEParser {
       for (const tournamentDetails of tournamentDetailBoxes) {
         const tier = tournamentDetails.querySelector(".Tier .selflink")
           ?.textContent as TournamentCategory | undefined;
-
         const leagueImage = tournamentDetails.querySelector(
           ".Tournament .league-icon-small-image img"
         );
         const league: Tournament["league"] = leagueImage
           ? {
               name: leagueImage.getAttribute("alt") ?? "",
-              imageUrl: `https://liquipedia.net${leagueImage.getAttribute(
-                "src"
-              )}`,
+              image: imageUrl(leagueImage),
             }
           : undefined;
         const tourLink = tournamentDetails.querySelector(".Tournament > a");
         const name = tourLink?.textContent;
 
         const url = tourLink?.getAttribute("href");
+        const path = url?.split(`/${Game.AOE}/`).pop() ?? "";
 
         const dates = tournamentDetails.querySelector(".Date")?.textContent;
         const prizePool =
@@ -213,9 +220,13 @@ export class AOEParser {
           tournamentDetails.querySelector(".PlayerNumber")?.textContent || "0",
           0
         );
-        const hostLocation = tournamentDetails
+        const locationName = tournamentDetails
           .querySelector(".Location")
           ?.textContent?.trim();
+        const locationCountry =
+          tournamentDetails
+            .querySelector(".Location img")
+            ?.getAttribute("alt") ?? "";
         let type = TournamentType.Unknown;
         const individualWinner = tournamentDetails.querySelector(
           ".FirstPlace .Participants .block-player .name"
@@ -240,36 +251,217 @@ export class AOEParser {
           }
         }
 
-        if (
-          !tier ||
-          !tourLink ||
-          !name ||
-          !url ||
-          !dates ||
-          !prizePool ||
-          !participants
-        ) {
+        let start: Tournament["start"] = undefined;
+        let end: Tournament["end"] = undefined;
+
+        if (dates) {
+          const [startPart, endPart] = dates.split(" - ");
+          const [startMonth] = startPart.split(" ");
+          const startYear = startPart.split(" ").pop();
+          const startDay = startPart.match(/^\d+|\d+\b|\d+(?=\w)/g)?.[0];
+          const differentYear = startYear?.length === 4;
+          start = dateParse(
+            `${startMonth} ${startDay} ${
+              differentYear ? startYear : endPart.split(" ").pop()
+            }`,
+            "MMM d y",
+            new Date()
+          );
+
+          if (endPart) {
+            const [endMonth] = endPart.split(" ");
+            const endYear = endPart.split(" ").pop();
+            const endDay = endPart.match(/^\d+|\d+\b|\d+(?=\w)/g)?.[0];
+            const differentMonth = /^[a-zA-Z]+$/.test(endMonth);
+
+            end = dateParse(
+              `${differentMonth ? endMonth : startMonth} ${endDay} ${endYear}`,
+              "MMM d y",
+              new Date()
+            );
+          }
+        }
+
+        if (!tier || !tourLink || !name || !url || !dates || !participants) {
           continue;
         }
+
+        const prizePoolNumber = Number(
+          prizePool?.replace(/[^\d\.]+/, "").replace(/,/g, "")
+        );
 
         const tournament: Tournament = {
           type,
           status: winner ? TournamentStatus.Completed : tournamentStatus,
           tier,
           name,
-          url: `https://liquipedia.net${url}`,
-          dates,
-          prizePool,
+          start,
+          end,
+          prizePool: isNaN(prizePoolNumber)
+            ? undefined
+            : { amount: prizePoolNumber, code: "USD" },
           participants,
-          hostLocation,
-          winner,
-          runnerUp,
+          location: locationName
+            ? {
+                name: locationName,
+                country: countries.find(
+                  (country) => country.name === locationCountry
+                ),
+                type:
+                  locationCountry === "World"
+                    ? TournamentLocationType.Online
+                    : TournamentLocationType.LAN,
+              }
+            : undefined,
+          winner: winner === "TBD" ? undefined : winner,
+          runnerUp: runnerUp === "TBD" ? undefined : runnerUp,
           league,
+          path,
         };
         tournaments.push(tournament);
       }
     }
     return tournaments;
+  }
+
+  parseTournament(tournamentResponse: string, path: string): TournamentDetail {
+    const tournament: TournamentDetail = {
+      schedule: [],
+      type: TournamentType.Unknown,
+      tier: Age2TournamentCategory.TierS,
+      status: TournamentStatus.Upcoming,
+      name: "",
+      description: "",
+      format: "",
+      rules: "",
+      path,
+      participants: 0,
+      playoffs: [],
+      tabs: [],
+    };
+
+    const htmlRoot = parse(tournamentResponse);
+    const attributes: Record<string, string> = {};
+
+    const tabRows = htmlRoot.querySelectorAll(".tabs-static");
+    for (const tabRow of tabRows) {
+      const tabs = [];
+      for (const tab of tabRow.querySelectorAll("a")) {
+        tabs.push({
+          path: tab.getAttribute("title") ?? path,
+          name: tab.textContent,
+          active: tab.parentNode.classList.contains("active"),
+        });
+      }
+      tournament.tabs.push(tabs);
+    }
+
+    htmlRoot
+      .querySelectorAll(".infobox-description")
+      .forEach(
+        (info) =>
+          (attributes[info.textContent.trim().replace(/.$/, "")] =
+            info.nextSibling.textContent)
+      );
+
+    tournament.name =
+      htmlRoot
+        .querySelector(".infobox-header")
+        ?.childNodes.find((node) => node.nodeType === 3)
+        ?.textContent.trim() ?? "";
+
+    tournament.league = {
+      image: imageUrl(htmlRoot.querySelector(".infobox-image img")),
+      name: "",
+    };
+
+    tournament.league.name = attributes["Series"];
+    tournament.prizePool = {
+      amount: Number(attributes["Prize Pool"]?.replace(/[^0-9.]/g, "")),
+      code: "USD",
+    };
+    tournament.start = new Date(attributes["Start Date"]);
+    tournament.end = new Date(attributes["End Date"]);
+    tournament.participants = Number(
+      attributes["Number of Players"] || attributes["Number of Teams"]
+    );
+
+    if (attributes["Number of Players"]) {
+      tournament.type = TournamentType.Individual;
+    }
+    if (attributes["Number of Teams"]) {
+      tournament.type = TournamentType.Team;
+    }
+
+    tournament.description = NodeHtmlMarkdown.translate(
+      htmlRoot.querySelector(".mw-parser-output > p")?.toString() ?? ""
+    );
+
+    tournament.format = NodeHtmlMarkdown.translate(
+      htmlRoot.querySelector("h3:has(#Format) + ul")?.toString() ?? ""
+    );
+
+    tournament.rules = NodeHtmlMarkdown.translate(
+      htmlRoot.querySelector("h3:has(#Rules_\\26_Settings) + ul")?.toString() ??
+        ""
+    );
+
+    const playoffRows = htmlRoot.querySelectorAll(".bracket-wrapper");
+
+    for (const playoffRow of playoffRows) {
+      const playoffColumns = playoffRow.querySelectorAll(
+        ".bracket-column-matches"
+      );
+      const row = [];
+
+      for (const playoffColumn of playoffColumns) {
+        row.push(parsePlayoffColumn(playoffColumn));
+      }
+
+      tournament.playoffs.push(row);
+    }
+
+    tournament.playoffs = tournament.playoffs
+      .map((playoffRow) =>
+        playoffRow.filter((playoff) => playoff.matches.length)
+      )
+      .filter((playoffRow) => playoffRow?.length);
+
+    const schedule = htmlRoot.querySelectorAll(
+      "h3:has(#Schedule) + .table-responsive .wikitable .Match"
+    );
+
+    for (const event of schedule) {
+      const date = new Date(
+        Number(
+          event
+            .querySelector(".Date .timer-object-datetime-only")
+            ?.getAttribute("data-timestamp")
+        ) * 1000
+      );
+      const playerLeft = event.querySelector(".TeamLeft");
+      const playerRight = event.querySelector(".TeamRight");
+      const [scoreLeft, scoreRight] =
+        event.querySelector(".Score")?.textContent.split(":") ?? [];
+
+      tournament.schedule?.push({
+        date,
+        participants: [
+          {
+            name: playerLeft?.textContent?.trim() ?? "",
+            score: isNaN(Number(scoreLeft)) ? undefined : Number(scoreLeft),
+            image: imageUrl(playerLeft?.querySelector("img")),
+          },
+          {
+            name: playerRight?.textContent?.trim() ?? "",
+            score: isNaN(Number(scoreRight)) ? undefined : Number(scoreRight),
+            image: imageUrl(playerRight?.querySelector("img")),
+          },
+        ],
+      });
+    }
+
+    return tournament;
   }
 
   parsePatches(patchesResponse: string): Patch[] {

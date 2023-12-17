@@ -50,8 +50,12 @@ export class AOEApi {
   }
 
   getTournaments(
-    tournamentTier: TournamentCategory = Age2TournamentCategory.All
+    tournamentTier: TournamentCategory = Age2TournamentCategory.TierS
   ) {
     return this.request.get(tournamentTier);
+  }
+
+  getTournament(name: string) {
+    return this.request.get(name);
   }
 }
