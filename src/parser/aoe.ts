@@ -17,6 +17,7 @@ import {
   TournamentLocationType,
   TournamentDetail,
   Age2TournamentCategory,
+  EventParticipant,
 } from "../types/aoe/tournaments";
 import { parse } from "../common/parse";
 import { parse as dateParse } from "date-fns";
@@ -25,8 +26,18 @@ import { Player } from "../types/aoe/player";
 import { countries } from "../data/countries";
 import { Game } from "../types/games";
 import { NodeHtmlMarkdown } from "node-html-markdown";
-import { parsePlayoffColumn } from "./aoe/tournament";
+import {
+  parseAllGroups,
+  parseAllParticipants,
+  parseGroupMatch,
+  parseGroupParticipant,
+  parseMaps,
+  parseMatchPopup,
+  parseParticipant,
+  parsePlayoffColumn,
+} from "./aoe/tournament";
 import { imageUrl } from "../data/image";
+import { HTMLElement } from "node-html-parser";
 
 export class AOEParser {
   parseTeams(teamsResponse: string): Team[] {
@@ -196,8 +207,9 @@ export class AOEParser {
         tournamentSection.querySelectorAll(".gridRow");
 
       for (const tournamentDetails of tournamentDetailBoxes) {
-        const tier = tournamentDetails.querySelector(".Tier .selflink")
-          ?.textContent as TournamentCategory | undefined;
+        const tier = tournamentDetails.querySelector(
+          ".Tier > span:not(.GameIcon) a"
+        )?.textContent as TournamentCategory | undefined;
         const leagueImage = tournamentDetails.querySelector(
           ".Tournament .league-icon-small-image img"
         );
@@ -216,7 +228,7 @@ export class AOEParser {
         const dates = tournamentDetails.querySelector(".Date")?.textContent;
         const prizePool =
           tournamentDetails.querySelector(".Prize")?.textContent;
-        const participants = parseInt(
+        const participantsCount = parseInt(
           tournamentDetails.querySelector(".PlayerNumber")?.textContent || "0",
           0
         );
@@ -228,25 +240,25 @@ export class AOEParser {
             .querySelector(".Location img")
             ?.getAttribute("alt") ?? "";
         let type = TournamentType.Unknown;
-        const individualWinner = tournamentDetails.querySelector(
-          ".FirstPlace .Participants .block-player .name"
-        )?.textContent;
-        const teamWinner = tournamentDetails.querySelector(
-          ".FirstPlace .Participants .block-team .name"
-        )?.textContent;
-        const individualRunnerUp = tournamentDetails.querySelector(
-          ".SecondPlace .Participants .block-player .name"
-        )?.textContent;
-        const teamRunnerUp = tournamentDetails.querySelector(
-          ".SecondPlace .Participants .block-team .name"
-        )?.textContent;
+        const participants: Tournament["participants"] = tournamentDetails
+          .querySelectorAll(".Placement")
+          .map((element) => {
+            const name = element.textContent.trim();
+            const image = element.querySelector(".Participants img");
 
-        const winner = individualWinner || teamWinner;
-        const runnerUp = individualRunnerUp || teamRunnerUp;
-        if (winner !== "TBD") {
-          if (individualWinner) {
+            return { name, image: imageUrl(image) };
+          })
+          .filter(
+            (participant) => participant.name && participant.name !== "TBD"
+          );
+
+        const participantElement =
+          tournamentDetails.querySelector(".Participants");
+
+        if (participantElement && participants.length > 0) {
+          if (participantElement.querySelector(".block-player")) {
             type = TournamentType.Individual;
-          } else if (teamWinner) {
+          } else if (participantElement.querySelector(".block-team")) {
             type = TournamentType.Team;
           }
         }
@@ -282,7 +294,14 @@ export class AOEParser {
           }
         }
 
-        if (!tier || !tourLink || !name || !url || !dates || !participants) {
+        if (
+          !tier ||
+          !tourLink ||
+          !name ||
+          !url ||
+          !dates ||
+          !participantsCount
+        ) {
           continue;
         }
 
@@ -292,7 +311,10 @@ export class AOEParser {
 
         const tournament: Tournament = {
           type,
-          status: winner ? TournamentStatus.Completed : tournamentStatus,
+          status:
+            participants.length > 0
+              ? TournamentStatus.Completed
+              : tournamentStatus,
           tier,
           name,
           start,
@@ -301,6 +323,7 @@ export class AOEParser {
             ? undefined
             : { amount: prizePoolNumber, code: "USD" },
           participants,
+          participantsCount,
           location: locationName
             ? {
                 name: locationName,
@@ -313,8 +336,6 @@ export class AOEParser {
                     : TournamentLocationType.LAN,
               }
             : undefined,
-          winner: winner === "TBD" ? undefined : winner,
-          runnerUp: runnerUp === "TBD" ? undefined : runnerUp,
           league,
           path,
         };
@@ -335,13 +356,21 @@ export class AOEParser {
       format: "",
       rules: "",
       path,
-      participants: 0,
+      participantsCount: 0,
+      participants: [],
       playoffs: [],
       tabs: [],
+      maps: [],
+      groups: [],
+      results: [],
+      prizes: [],
     };
 
     const htmlRoot = parse(tournamentResponse);
-    const attributes: Record<string, string> = {};
+    const attributes: Record<
+      string,
+      { path?: string; text: string }[] | undefined
+    > = {};
 
     const tabRows = htmlRoot.querySelectorAll(".tabs-static");
     for (const tabRow of tabRows) {
@@ -356,13 +385,19 @@ export class AOEParser {
       tournament.tabs.push(tabs);
     }
 
-    htmlRoot
-      .querySelectorAll(".infobox-description")
-      .forEach(
-        (info) =>
-          (attributes[info.textContent.trim().replace(/.$/, "")] =
-            info.nextSibling.textContent)
-      );
+    htmlRoot.querySelectorAll(".infobox-description").forEach((info) => {
+      const anchors = info.nextElementSibling.querySelectorAll("a");
+      const attributeValues =
+        anchors.length > 0
+          ? info.nextElementSibling.querySelectorAll("a").map((anchor) => ({
+              path: anchor.getAttribute("href")?.replace(`/${Game.AOE}/`, ""),
+              text: anchor.textContent,
+            }))
+          : [{ text: info.nextElementSibling.textContent }];
+      attributes[info.textContent.trim().replace(/.$/, "")] = attributeValues;
+    });
+
+    const series = attributes["Series"]?.[0];
 
     tournament.name =
       htmlRoot
@@ -372,17 +407,19 @@ export class AOEParser {
 
     tournament.league = {
       image: imageUrl(htmlRoot.querySelector(".infobox-image img")),
-      name: "",
+      name: series?.text ?? "",
+      path: series?.path,
     };
 
-    tournament.league.name = attributes["Series"];
     tournament.prizePool = {
-      amount: Number(attributes["Prize Pool"]?.replace(/[^0-9.]/g, "")),
+      amount: Number(
+        attributes["Prize Pool"]?.[0].text?.replace(/[^0-9.]/g, "")
+      ),
       code: "USD",
     };
-    tournament.start = new Date(attributes["Start Date"]);
-    tournament.end = new Date(attributes["End Date"]);
-    tournament.participants = Number(
+    tournament.start = new Date(attributes["Start Date"]?.[0].text ?? "");
+    tournament.end = new Date(attributes["End Date"]?.[0].text ?? "");
+    tournament.participantsCount = Number(
       attributes["Number of Players"] || attributes["Number of Teams"]
     );
 
@@ -397,6 +434,19 @@ export class AOEParser {
       htmlRoot.querySelector(".mw-parser-output > p")?.toString() ?? ""
     );
 
+    tournament.broadcastTalent = NodeHtmlMarkdown.translate(
+      htmlRoot
+        .querySelector("h3:has(#Broadcast_Talent) + div .tabs-content")
+        ?.toString() ?? ""
+    );
+
+    if (!tournament.broadcastTalent) {
+      tournament.broadcastTalent = NodeHtmlMarkdown.translate(
+        htmlRoot.querySelector("h3:has(#Broadcast_Talent) + div")?.toString() ??
+          ""
+      );
+    }
+
     tournament.format = NodeHtmlMarkdown.translate(
       htmlRoot.querySelector("h3:has(#Format) + ul")?.toString() ?? ""
     );
@@ -405,6 +455,122 @@ export class AOEParser {
       htmlRoot.querySelector("h3:has(#Rules_\\26_Settings) + ul")?.toString() ??
         ""
     );
+
+    tournament.scheduleNote = NodeHtmlMarkdown.translate(
+      htmlRoot.querySelector("h3:has(#Schedule) + ul")?.toString() ?? ""
+    );
+
+    const multipleGroups = htmlRoot.querySelector(".toggle-group");
+    if (multipleGroups?.querySelector(".table-responsive")) {
+      tournament.groups = parseAllGroups(multipleGroups);
+    } else if (multipleGroups) {
+      tournament.groups.push({
+        name:
+          htmlRoot.querySelector("#Swiss_Stage, #Group_Stage")?.textContent ??
+          "Group Stage",
+        participants:
+          htmlRoot
+            .querySelector(".swisstable")
+            ?.querySelectorAll("tr:not(:first-child)")
+            .map(parseGroupParticipant) ?? [],
+        rounds:
+          multipleGroups?.querySelectorAll(".matchlist").map((round) => {
+            return {
+              name:
+                round.querySelector("tr:first-child")?.textContent.trim() ?? "",
+              matches: round
+                .querySelectorAll(".match-row")
+                .map(parseGroupMatch),
+            };
+          }) ?? [],
+      });
+    }
+    const participantsTable = htmlRoot.querySelector(".participanttable");
+
+    tournament.maps = parseMaps(htmlRoot);
+    if (participantsTable) {
+      tournament.participants = parseAllParticipants(participantsTable);
+    }
+
+    tournament.results = htmlRoot
+      .querySelectorAll(".showmatch")
+      .map((showmatch) => {
+        const participants = showmatch.querySelector("tr:first-child");
+        const popup = showmatch.querySelector("tr:last-child");
+        const [participant1, participant2]: EventParticipant[] =
+          participants
+            ?.querySelectorAll("th:first-child, th:last-child")
+            .map((participant) => ({
+              name: participant.textContent.trim(),
+              image: imageUrl(participant.querySelector("img")),
+            })) ?? [];
+
+        const [score1, score2] =
+          participants
+            ?.querySelectorAll("th:nth-child(2), th:nth-child(3)")
+            .map((scoreElement) => {
+              const scoreText = scoreElement.childNodes.find(
+                (node) => node.nodeType === 3
+              )?.textContent;
+              const score = isNaN(Number(scoreText))
+                ? scoreText
+                : Number(scoreText);
+              return score;
+            }) ?? [];
+
+        participant1.score = score1;
+        participant2.score = score2;
+
+        return {
+          participants: [participant1, participant2],
+          winner:
+            typeof score1 === "number" && typeof score2 === "number"
+              ? score1 > score2
+                ? 0
+                : 1
+              : undefined,
+          ...parseMatchPopup(popup),
+        };
+      });
+
+    tournament.prizes = htmlRoot
+      .querySelectorAll(
+        ".prizepool-section-tables .csstable-widget-row:not(.prizepooltable-header):not(.ppt-toggle-expand)"
+      )
+      .map((prize) => {
+        const place =
+          prize
+            .querySelector(".csstable-widget-cell:first-child")
+            ?.textContent.trim() ?? "";
+
+        const prizePool = prize.querySelector(
+          ".csstable-widget-cell:nth-child(2)"
+        )?.textContent;
+        const prizePoolNumber = Number(
+          prizePool?.replace(/[^\d\.]+/, "").replace(/,/g, "")
+        );
+
+        const participants = prize
+          .querySelectorAll(".block-team, .block-player")
+          .map(parseParticipant);
+
+        return {
+          prize: isNaN(prizePoolNumber)
+            ? undefined
+            : { amount: prizePoolNumber, code: "USD" },
+          place,
+          participants,
+        };
+      });
+
+    const participantNoteElement =
+      participantsTable?.parentNode.nextElementSibling;
+
+    if (participantNoteElement?.tagName.toLowerCase() === "p") {
+      tournament.participantsNote = NodeHtmlMarkdown.translate(
+        participantNoteElement.toString()
+      );
+    }
 
     const playoffRows = htmlRoot.querySelectorAll(".bracket-wrapper");
 

@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Liquipedia API Connector",
   "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "files": [
     "dist"
@@ -28,7 +27,6 @@
     "date-fns": "^2.30.0",
     "lodash": "^4.17.21",
     "node-html-markdown": "^1.3.0",
-    "node-html-parser": "^6.1.11",
-    "srcset-parse": "^1.1.0"
+    "node-html-parser": "^6.1.11"
   }
 }

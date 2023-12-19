@@ -6,7 +6,9 @@ const liquipedia = new Liquipedia({
 });
 
 test("parses tournaments correctly", async () => {
-  const tournaments = await liquipedia.aoe.getTournaments();
+  const tournaments = await liquipedia.aoe.getTournaments(
+    "Nili%27s_Apartment_Cup" as any
+  );
 
   await fs.writeFile(
     "./data/tournaments.json",
@@ -25,7 +27,7 @@ test("parses player correctly", async () => {
 
 test("parses tournament correctly", async () => {
   const tournament = await liquipedia.aoe.getTournament(
-    "AoE2_Admirals_League/2"
+    "Nili%27s_Apartment_Cup/5/Showmatch/1"
   );
 
   await fs.writeFile(

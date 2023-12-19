@@ -71,6 +71,8 @@ export enum TournamentLocationType {
   Online = "Online",
 }
 
+export type Amount = { amount: number; code: "USD" };
+
 export interface Tournament {
   type: TournamentType;
   tier: TournamentCategory;
@@ -79,18 +81,18 @@ export interface Tournament {
   path: string;
   start?: Date;
   end?: Date;
-  participants: number;
-  prizePool?: { amount: number; code: "USD" };
+  participantsCount: number;
+  participants: EventParticipant[];
+  prizePool?: Amount;
   location?: {
     name: string;
     country?: Country;
     type: TournamentLocationType;
   };
-  winner?: string;
-  runnerUp?: string;
   league?: {
     name: string;
     image?: string;
+    path?: string;
   };
 }
 
@@ -146,11 +148,56 @@ export interface Tab {
   active: boolean;
 }
 
+export interface Map {
+  name: string;
+  path?: string;
+  image: string;
+  category?: string;
+}
+
+export interface Score {
+  win: number;
+  loss: number;
+  draw: number;
+}
+
+export interface GroupParticipant extends Omit<EventParticipant, "score"> {
+  position?: number;
+  matchScore?: Score;
+  gameScore?: Score;
+  points?: string;
+  status: "up" | "stayup" | "stay" | "down";
+}
+
+export interface Round {
+  name: string;
+  matches: PlayoffMatch[];
+}
+
+export interface Group {
+  name: string;
+  participants: GroupParticipant[];
+  rounds: Round[];
+}
+
+export interface Prize {
+  place: string;
+  prize?: Amount;
+  participants: EventParticipant[];
+}
+
 export interface TournamentDetail extends Tournament {
   description: string;
   format: string;
+  broadcastTalent?: string;
   rules: string;
+  maps: Map[];
   schedule: Event[];
+  scheduleNote?: string;
   playoffs: Array<PlayoffRound[]>;
+  participantsNote?: string;
+  groups: Group[];
   tabs: Array<Tab[]>;
+  results: PlayoffMatch[];
+  prizes: Prize[];
 }
