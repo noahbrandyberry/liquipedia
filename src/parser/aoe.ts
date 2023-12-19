@@ -18,6 +18,8 @@ import {
   TournamentDetail,
   Age2TournamentCategory,
   EventParticipant,
+  TournamentSection,
+  Playoff,
 } from "../types/aoe/tournaments";
 import { parse } from "../common/parse";
 import { parse as dateParse } from "date-fns";
@@ -38,6 +40,7 @@ import {
 } from "./aoe/tournament";
 import { imageUrl } from "../data/image";
 import { HTMLElement } from "node-html-parser";
+import { AOEClient } from "../client/aoe";
 
 export class AOEParser {
   parseTeams(teamsResponse: string): Team[] {
@@ -114,17 +117,9 @@ export class AOEParser {
 
     const matches: Match[] = [];
     for (const matchDetails of matchDetailBoxes) {
-      const leftTeam = matchDetails.querySelector(".team-left > span");
-      const leftTeamName = leftTeam?.getAttribute("data-highlightingclass");
-      const leftTeamShortName = leftTeam?.querySelector(
-        ".team-template-text a"
-      )?.textContent;
-
-      const rightTeam = matchDetails.querySelector(".team-right > span");
-      const rightTeamName = rightTeam?.getAttribute("data-highlightingclass");
-      const rightTeamShortName = rightTeam?.querySelector(
-        ".team-template-text a"
-      )?.textContent;
+      const [participant1, participant2] = matchDetails
+        .querySelectorAll(".team-left, .team-right")
+        .map(parseParticipant);
 
       const bestOf = matchDetails.querySelector(".versus abbr")?.textContent;
 
@@ -133,75 +128,89 @@ export class AOEParser {
       const twitchStream =
         matchTimeContainer?.getAttribute("data-stream-twitch");
 
-      const tournamentName = matchDetails
-        .querySelector(".league-icon-small-image > a")
-        ?.getAttribute("title");
-      const tournamentShortName = matchDetails.querySelector(
-        ".match-filler > div > div > a"
-      )?.textContent;
+      const tournament = matchDetails.querySelector(
+        ".league-icon-small-image > a"
+      );
 
-      if (!leftTeamName || !rightTeamName || !bestOf || !matchTime) {
+      if (!participant1 || !participant2 || !bestOf || !matchTime) {
         continue;
       }
 
-      // Convert to millisecond-based timestamp (multiply by 1000)
-      const startTimestamp = parseInt(matchTime, 10) * 1000;
-      const startTime = new Date(startTimestamp);
+      const startTimestamp = Number(matchTime) * 1000;
+
+      const score = matchDetails.querySelector(".versus > div")?.textContent;
+      const [scoreLeft, scoreRight] = score?.split(":") ?? [];
+
+      participant1.score = isNaN(Number(scoreLeft))
+        ? undefined
+        : Number(scoreLeft);
+      participant2.score = isNaN(Number(scoreRight))
+        ? undefined
+        : Number(scoreRight);
 
       const match: Match = {
-        leftTeam: {
-          name: leftTeamName,
-          shortName: leftTeamShortName,
-        },
-        rightTeam: {
-          name: rightTeamName,
-          shortName: rightTeamShortName,
-        },
-        bestOf: parseInt(bestOf.slice(2), 10),
-        status: MatchStatus.Upcoming,
-        startTime,
+        participants: [participant1, participant2],
+        format: bestOf,
+        startTime: new Date(startTimestamp),
         twitchStream: twitchStream
           ? `https://twitch.tv/${twitchStream.toLowerCase().replace(/_/g, "")}`
           : undefined,
-        tournamentName,
-        tournamentShortName,
+        tournament: {
+          name: tournament?.getAttribute("title") ?? "",
+          path:
+            tournament?.getAttribute("href")?.replace(`/${Game.AOE}/`, "") ??
+            "",
+          image: imageUrl(tournament?.querySelector("img")),
+        },
       };
 
-      if (startTimestamp < Date.now()) {
-        match.status = MatchStatus.Live;
-
-        // If we're live, parse the scores
-        const score = matchDetails.querySelector(".versus > div")?.textContent;
-        const scores = score?.split(":");
-        if (scores) {
-          match.leftTeam.currentScore = parseInt(scores[0], 10);
-          match.rightTeam.currentScore = parseInt(scores[1], 10);
-        }
-      }
+      // if (startTimestamp < Date.now()) {
+      //   // If we're live, parse the scores
+      //   // const score = matchDetails.querySelector(".versus > div")?.textContent;
+      //   // const scores = score?.split(":");
+      //   // if (scores) {
+      //   //   match.leftTeam.currentScore = parseInt(scores[0], 10);
+      //   //   match.rightTeam.currentScore = parseInt(scores[1], 10);
+      //   // }
+      // }
 
       matches.push(match);
     }
     return matches;
   }
 
-  parseTournaments(tournamentsResponse: string): Tournament[] {
-    const tournaments: Tournament[] = [];
+  async parseAllTournaments(
+    tournamentsResponse: string,
+    client: AOEClient
+  ): Promise<TournamentSection[]> {
+    let tournamentSections: TournamentSection[] =
+      this.parseTournaments(tournamentsResponse);
+
+    const htmlRoot = parse(tournamentsResponse);
+
+    const tabs = htmlRoot.querySelectorAll(".tabs4 a:not(.selflink)");
+    for (const tab of tabs.reverse()) {
+      const tabTournaments = await client.getTournaments(
+        tab.getAttribute("title") as TournamentCategory
+      );
+      tournamentSections = [...tabTournaments, ...tournamentSections];
+    }
+
+    return tournamentSections;
+  }
+
+  parseTournaments(tournamentsResponse: string): TournamentSection[] {
+    const tournamentSections: TournamentSection[] = [];
 
     const htmlRoot = parse(tournamentsResponse);
 
     const tournamentSectionBoxes = htmlRoot.querySelectorAll(".tournamentCard");
 
-    const tournamentStatuses = [
-      TournamentStatus.Upcoming,
-      TournamentStatus.Ongoing,
-      TournamentStatus.Completed,
-    ];
-    for (const [
-      sectionIndex,
-      tournamentSection,
-    ] of tournamentSectionBoxes.entries()) {
-      const tournamentStatus =
-        tournamentStatuses[sectionIndex] || TournamentStatus.Upcoming;
+    for (const tournamentSection of tournamentSectionBoxes) {
+      const data: Tournament[] = [];
+      const sectionTitle =
+        tournamentSection.previousElementSibling.querySelector(".mw-headline")
+          ?.textContent ?? "";
 
       const tournamentDetailBoxes =
         tournamentSection.querySelectorAll(".gridRow");
@@ -311,10 +320,6 @@ export class AOEParser {
 
         const tournament: Tournament = {
           type,
-          status:
-            participants.length > 0
-              ? TournamentStatus.Completed
-              : tournamentStatus,
           tier,
           name,
           start,
@@ -339,10 +344,12 @@ export class AOEParser {
           league,
           path,
         };
-        tournaments.push(tournament);
+        data.push(tournament);
       }
+
+      tournamentSections.push({ title: sectionTitle, data });
     }
-    return tournaments;
+    return tournamentSections;
   }
 
   parseTournament(tournamentResponse: string, path: string): TournamentDetail {
@@ -350,7 +357,6 @@ export class AOEParser {
       schedule: [],
       type: TournamentType.Unknown,
       tier: Age2TournamentCategory.TierS,
-      status: TournamentStatus.Upcoming,
       name: "",
       description: "",
       format: "",
@@ -576,22 +582,28 @@ export class AOEParser {
 
     for (const playoffRow of playoffRows) {
       const playoffColumns = playoffRow.querySelectorAll(
-        ".bracket-column-matches"
+        ":scope > .bracket-scroller .bracket-column-matches"
       );
-      const row = [];
+      const header = playoffRow.previousElementSibling;
+      const name =
+        header?.tagName.toLowerCase() === "p" || playoffRows.length > 0
+          ? header?.querySelector("span:first-child")?.textContent.trim()
+          : undefined;
+      const row: Playoff = { name, rounds: [] };
 
       for (const playoffColumn of playoffColumns) {
-        row.push(parsePlayoffColumn(playoffColumn));
+        row.rounds.push(parsePlayoffColumn(playoffColumn));
       }
 
       tournament.playoffs.push(row);
     }
 
     tournament.playoffs = tournament.playoffs
-      .map((playoffRow) =>
-        playoffRow.filter((playoff) => playoff.matches.length)
-      )
-      .filter((playoffRow) => playoffRow?.length);
+      .map((playoffRow) => ({
+        name: playoffRow.name,
+        rounds: playoffRow.rounds.filter((playoff) => playoff.matches.length),
+      }))
+      .filter((playoffRow) => playoffRow.rounds.length);
 
     const schedule = htmlRoot.querySelectorAll(
       "h3:has(#Schedule) + .table-responsive .wikitable .Match"
@@ -612,6 +624,7 @@ export class AOEParser {
 
       tournament.schedule?.push({
         date,
+        format: event.querySelector(".Score abbr")?.textContent,
         participants: [
           {
             name: playerLeft?.textContent?.trim() ?? "",

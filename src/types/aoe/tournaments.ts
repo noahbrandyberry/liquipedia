@@ -73,10 +73,14 @@ export enum TournamentLocationType {
 
 export type Amount = { amount: number; code: "USD" };
 
+export interface TournamentSection {
+  title: string;
+  data: Tournament[];
+}
+
 export interface Tournament {
   type: TournamentType;
   tier: TournamentCategory;
-  status: TournamentStatus;
   name: string;
   path: string;
   start?: Date;
@@ -110,6 +114,7 @@ export interface EventParticipant {
 
 export interface Event {
   date: Date;
+  format?: string;
   participants: [EventParticipant, EventParticipant];
 }
 
@@ -127,7 +132,7 @@ export interface PlayoffGame {
 
 export interface PlayoffMatch {
   name?: string;
-  participants: [EventParticipant, EventParticipant];
+  participants: [EventParticipant, EventParticipant] | [EventParticipant];
   winner?: 0 | 1;
   startTime?: Date;
   twitchStream?: string;
@@ -186,6 +191,11 @@ export interface Prize {
   participants: EventParticipant[];
 }
 
+export interface Playoff {
+  name?: string;
+  rounds: PlayoffRound[];
+}
+
 export interface TournamentDetail extends Tournament {
   description: string;
   format: string;
@@ -194,7 +204,7 @@ export interface TournamentDetail extends Tournament {
   maps: Map[];
   schedule: Event[];
   scheduleNote?: string;
-  playoffs: Array<PlayoffRound[]>;
+  playoffs: Playoff[];
   participantsNote?: string;
   groups: Group[];
   tabs: Array<Tab[]>;

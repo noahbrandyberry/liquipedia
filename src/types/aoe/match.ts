@@ -1,3 +1,5 @@
+import { EventParticipant } from "./tournaments";
+
 export type MatchTeam = {
   name: string;
   shortName?: string;
@@ -11,14 +13,16 @@ export enum MatchStatus {
 }
 
 export type Match = {
-  leftTeam: MatchTeam;
-  rightTeam: MatchTeam;
-  bestOf: number;
-  status: MatchStatus;
+  participants: [EventParticipant, EventParticipant];
+  format?: string;
+  winner?: 0 | 1;
   startTime?: Date;
   twitchStream?: string;
-  tournamentName?: string;
-  tournamentShortName?: string;
+  tournament: {
+    name: string;
+    image?: string;
+    path: string;
+  };
 };
 
 export interface MatchClient {

@@ -32,9 +32,22 @@ export const parsePlayoffColumn = (
   };
 
   for (const playoffMatch of playoffMatches) {
-    const match = parsePlayoffMatch(playoffMatch);
-    if (match) {
-      playoffRound.matches.push(match);
+    if (playoffMatch.querySelectorAll("[class^=bracket-cell-]").length > 2) {
+      for (const singularPlayoffMatch of playoffMatch.querySelectorAll(
+        "[class^=bracket-cell-]"
+      )) {
+        const match = parsePlayoffMatch(singularPlayoffMatch);
+
+        if (match) {
+          playoffRound.matches = [...playoffRound.matches, match];
+        }
+      }
+    } else {
+      const match = parsePlayoffMatch(playoffMatch);
+
+      if (match) {
+        playoffRound.matches = [...playoffRound.matches, match];
+      }
     }
   }
 
@@ -46,27 +59,31 @@ export const parsePlayoffMatch = (
 ): PlayoffMatch | null => {
   const [participant1, participant2] = playoffMatch
     .querySelectorAll(
-      ".bracket-player-top, .bracket-team-top, .bracket-player-bottom, .bracket-team-bottom"
+      ".bracket-player-top, .bracket-team-top, .bracket-player-bottom, .bracket-team-bottom, .bracket-player-middle"
     )
     .map(parseParticipant);
 
-  if (!participant1 || !participant2) {
+  if (!participant1) {
     return null;
   }
 
   const previous = playoffMatch.previousElementSibling;
   const name =
+    !previous ||
     previous.classList.contains("bracket-game") ||
+    previous.getAttribute("class")?.includes("bracket-cell-") ||
     previous.querySelector(".bracket-header")
       ? undefined
-      : previous.textContent;
+      : previous.textContent.trim();
 
   const match: PlayoffMatch = {
     name,
-    participants: [participant1, participant2],
+    participants: participant2 ? [participant1, participant2] : [participant1],
     winner:
+      participant2 &&
       typeof participant1.score === "number" &&
-      typeof participant2.score === "number"
+      typeof participant2.score === "number" &&
+      participant1.score !== participant2.score
         ? participant1.score > participant2.score
           ? 0
           : 1
