@@ -12,6 +12,7 @@ import {
   Age2TournamentCategory,
   TournamentDetail,
   TournamentSection,
+  Tournament,
 } from "../types/aoe/tournaments";
 import { Item } from "../types/aoe/item";
 
@@ -72,7 +73,7 @@ export class AOEClient {
     return this.parser.parseTournaments(response.parse.text["*"]);
   }
 
-  async getAllTournaments(): Promise<TournamentSection[]> {
+  async getAllTournaments(): Promise<Tournament[]> {
     const response = await this.api.getTournaments(
       "Age_of_Empires_II/Tournaments/Pre_2020" as TournamentCategory
     );

@@ -11,7 +11,6 @@ import {
 import { Hero, HeroAttr } from "../types/aoe/hero";
 import {
   Tournament,
-  TournamentStatus,
   TournamentCategory,
   TournamentType,
   TournamentLocationType,
@@ -23,7 +22,7 @@ import {
 } from "../types/aoe/tournaments";
 import { parse } from "../common/parse";
 import { parse as dateParse } from "date-fns";
-import { Match, MatchStatus } from "../types/aoe/match";
+import { Match } from "../types/aoe/match";
 import { Player } from "../types/aoe/player";
 import { countries } from "../data/countries";
 import { Game } from "../types/games";
@@ -171,21 +170,26 @@ export class AOEParser {
   async parseAllTournaments(
     tournamentsResponse: string,
     client: AOEClient
-  ): Promise<TournamentSection[]> {
-    let tournamentSections: TournamentSection[] =
+  ): Promise<Tournament[]> {
+    const tournamentSections: TournamentSection[] =
       this.parseTournaments(tournamentsResponse);
 
     const htmlRoot = parse(tournamentsResponse);
 
     const tabs = htmlRoot.querySelectorAll(".tabs4 a:not(.selflink)");
-    for (const tab of tabs.reverse()) {
-      const tabTournaments = await client.getTournaments(
-        tab.getAttribute("title") as TournamentCategory
-      );
-      tournamentSections = [...tabTournaments, ...tournamentSections];
-    }
 
-    return tournamentSections;
+    const responses = await Promise.all(
+      tabs
+        .reverse()
+        .map((tab) =>
+          client.getTournaments(tab.getAttribute("title") as TournamentCategory)
+        )
+    );
+    const allTournaments = [...responses.flat(), ...tournamentSections].flatMap(
+      (section) => section.data
+    );
+
+    return allTournaments;
   }
 
   parseTournaments(tournamentsResponse: string): TournamentSection[] {
