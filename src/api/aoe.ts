@@ -13,6 +13,10 @@ export class AOEApi {
     this.request = new Request(Game.AOE, config.USER_AGENT, config.BASE_URL);
   }
 
+  get(page: string) {
+    return this.request.get(page);
+  }
+
   getPlayers() {
     return this.request.get("Players_(all)");
   }

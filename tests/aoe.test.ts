@@ -5,14 +5,14 @@ const liquipedia = new Liquipedia({
   USER_AGENT: "MyAwesomeProject/1.0 (my.email@gmail.com)",
 });
 
-// test("parses tournaments correctly", async () => {
-//   const tournaments = await liquipedia.aoe.getTournaments();
+test("parses tournaments correctly", async () => {
+  const tournaments = await liquipedia.aoe.getAllTournaments();
 
-//   await fs.writeFile(
-//     "./data/tournaments.json",
-//     JSON.stringify(tournaments, null, 2)
-//   );
-// });
+  await fs.writeFile(
+    "./data/tournaments.json",
+    JSON.stringify(tournaments, null, 2)
+  );
+});
 
 // test("parses series of tournaments correctly", async () => {
 //   const tournaments = await liquipedia.aoe.getTournaments(
@@ -34,14 +34,16 @@ const liquipedia = new Liquipedia({
 //   );
 // });
 
-test("parses tournament correctly", async () => {
-  const tournament = await liquipedia.aoe.getTournament("Blue_Carbon_Cup");
+// test("parses tournament correctly", async () => {
+//   const tournament = await liquipedia.aoe.getTournament(
+//     "Nili%27s_Apartment_Cup/5/Showmatch/1"
+//   );
 
-  await fs.writeFile(
-    "./data/tournament.json",
-    JSON.stringify(tournament, null, 2)
-  );
-});
+//   await fs.writeFile(
+//     "./data/tournament.json",
+//     JSON.stringify(tournament, null, 2)
+//   );
+// });
 
 test("parses live matches correctly", async () => {
   const liveMatches = await liquipedia.aoe.getMatches();

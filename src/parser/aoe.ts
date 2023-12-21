@@ -28,6 +28,7 @@ import { Player } from "../types/aoe/player";
 import { countries } from "../data/countries";
 import { Game } from "../types/games";
 import { NodeHtmlMarkdown } from "node-html-markdown";
+import { HTMLElement } from "node-html-parser";
 import {
   parseAllGroups,
   parseAllParticipants,
@@ -39,7 +40,6 @@ import {
   parsePlayoffColumn,
 } from "./aoe/tournament";
 import { imageUrl } from "../data/image";
-import { HTMLElement } from "node-html-parser";
 import { AOEClient } from "../client/aoe";
 
 export class AOEParser {
@@ -179,6 +179,15 @@ export class AOEParser {
     return matches;
   }
 
+  parseRedirect(response: string): string | undefined {
+    const htmlRoot = parse(response);
+
+    return htmlRoot
+      .querySelector(".redirectText a")
+      ?.getAttribute("href")
+      ?.replace(`/${Game.AOE}/`, "");
+  }
+
   async parseAllTournaments(
     tournamentsResponse: string,
     client: AOEClient
@@ -188,10 +197,24 @@ export class AOEParser {
 
     const htmlRoot = parse(tournamentsResponse);
 
-    const tabs = htmlRoot.querySelectorAll(".tabs4 a:not(.selflink)");
-    for (const tab of tabs.reverse()) {
+    const getSiblings = function (elem: HTMLElement | null) {
+      var siblings = [];
+      let sibling = elem;
+
+      while (sibling) {
+        if (sibling !== elem) {
+          siblings.push(sibling);
+        }
+        sibling = sibling.previousElementSibling;
+      }
+
+      return siblings;
+    };
+
+    const tabs = getSiblings(htmlRoot.querySelector(".tabs4 .active"));
+    for (const tab of tabs) {
       const tabTournaments = await client.getTournaments(
-        tab.getAttribute("title") as TournamentCategory
+        tab.querySelector("a")?.getAttribute("title") as TournamentCategory
       );
       tournamentSections = [...tabTournaments, ...tournamentSections];
     }
@@ -383,7 +406,7 @@ export class AOEParser {
       const tabs = [];
       for (const tab of tabRow.querySelectorAll("a")) {
         tabs.push({
-          path: tab.getAttribute("title") ?? path,
+          path: tab.getAttribute("href")?.replace(`/${Game.AOE}/`, "") ?? path,
           name: tab.textContent,
           active: tab.parentNode.classList.contains("active"),
         });
@@ -423,8 +446,11 @@ export class AOEParser {
       ),
       code: "USD",
     };
-    tournament.start = new Date(attributes["Start Date"]?.[0].text ?? "");
-    tournament.end = new Date(attributes["End Date"]?.[0].text ?? "");
+    const start =
+      attributes["Start Date"]?.[0].text ?? attributes["Date"]?.[0].text ?? "";
+    const end = attributes["End Date"]?.[0].text ?? "";
+    tournament.start = start ? new Date(start) : undefined;
+    tournament.end = end ? new Date(end) : undefined;
     tournament.participantsCount = Number(
       attributes["Number of Players"] || attributes["Number of Teams"]
     );
