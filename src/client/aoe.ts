@@ -73,23 +73,13 @@ export class AOEClient {
   }
 
   async getAllTournaments(): Promise<TournamentSection[]> {
-    const redirectResponse = await this.api.get(
-      "Age_of_Empires_II/Tournaments"
+    const response = await this.api.getTournaments(
+      "Age_of_Empires_II/Tournaments/Pre_2020" as TournamentCategory
     );
-    const page = this.parser.parseRedirect(redirectResponse.parse.text["*"]);
-
-    if (page) {
-      const response = await this.api.getTournaments(
-        page as TournamentCategory
-      );
-
-      return await this.parser.parseAllTournaments(
-        response.parse.text["*"],
-        this
-      );
-    } else {
-      return [];
-    }
+    return await this.parser.parseAllTournaments(
+      response.parse.text["*"],
+      this
+    );
   }
 
   async getTournament(path: string): Promise<TournamentDetail> {

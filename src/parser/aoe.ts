@@ -28,7 +28,6 @@ import { Player } from "../types/aoe/player";
 import { countries } from "../data/countries";
 import { Game } from "../types/games";
 import { NodeHtmlMarkdown } from "node-html-markdown";
-import { HTMLElement } from "node-html-parser";
 import {
   parseAllGroups,
   parseAllParticipants,
@@ -164,28 +163,9 @@ export class AOEParser {
         },
       };
 
-      // if (startTimestamp < Date.now()) {
-      //   // If we're live, parse the scores
-      //   // const score = matchDetails.querySelector(".versus > div")?.textContent;
-      //   // const scores = score?.split(":");
-      //   // if (scores) {
-      //   //   match.leftTeam.currentScore = parseInt(scores[0], 10);
-      //   //   match.rightTeam.currentScore = parseInt(scores[1], 10);
-      //   // }
-      // }
-
       matches.push(match);
     }
     return matches;
-  }
-
-  parseRedirect(response: string): string | undefined {
-    const htmlRoot = parse(response);
-
-    return htmlRoot
-      .querySelector(".redirectText a")
-      ?.getAttribute("href")
-      ?.replace(`/${Game.AOE}/`, "");
   }
 
   async parseAllTournaments(
@@ -197,24 +177,10 @@ export class AOEParser {
 
     const htmlRoot = parse(tournamentsResponse);
 
-    const getSiblings = function (elem: HTMLElement | null) {
-      var siblings = [];
-      let sibling = elem;
-
-      while (sibling) {
-        if (sibling !== elem) {
-          siblings.push(sibling);
-        }
-        sibling = sibling.previousElementSibling;
-      }
-
-      return siblings;
-    };
-
-    const tabs = getSiblings(htmlRoot.querySelector(".tabs4 .active"));
-    for (const tab of tabs) {
+    const tabs = htmlRoot.querySelectorAll(".tabs4 a:not(.selflink)");
+    for (const tab of tabs.reverse()) {
       const tabTournaments = await client.getTournaments(
-        tab.querySelector("a")?.getAttribute("title") as TournamentCategory
+        tab.getAttribute("title") as TournamentCategory
       );
       tournamentSections = [...tabTournaments, ...tournamentSections];
     }
