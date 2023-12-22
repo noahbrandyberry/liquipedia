@@ -6,7 +6,7 @@ const liquipedia = new Liquipedia({
 });
 
 test("parses tournaments correctly", async () => {
-  const tournaments = await liquipedia.aoe.getAllTournaments();
+  const tournaments = await liquipedia.aoe.getUpcomingTournaments();
 
   await fs.writeFile(
     "./data/tournaments.json",
@@ -34,16 +34,16 @@ test("parses tournaments correctly", async () => {
 //   );
 // });
 
-// test("parses tournament correctly", async () => {
-//   const tournament = await liquipedia.aoe.getTournament(
-//     "Nili%27s_Apartment_Cup/5/Showmatch/1"
-//   );
+test("parses tournament correctly", async () => {
+  const tournament = await liquipedia.aoe.getTournament(
+    "Nili%27s_Apartment_Cup/5"
+  );
 
-//   await fs.writeFile(
-//     "./data/tournament.json",
-//     JSON.stringify(tournament, null, 2)
-//   );
-// });
+  await fs.writeFile(
+    "./data/tournament.json",
+    JSON.stringify(tournament, null, 2)
+  );
+});
 
 test("parses live matches correctly", async () => {
   const liveMatches = await liquipedia.aoe.getMatches();

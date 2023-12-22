@@ -73,6 +73,17 @@ export class AOEClient {
     return this.parser.parseTournaments(response.parse.text["*"]);
   }
 
+  async getUpcomingTournaments(): Promise<Tournament[]> {
+    const response = await this.api.getTournaments(
+      "Portal:Tournaments" as TournamentCategory
+    );
+    return this.parser
+      .parseTournaments(response.parse.text["*"])
+      .filter((section) => section.title !== "Three Most Recent")
+      .flatMap((section) => section.data)
+      .filter((tournament) => tournament.game === "Age of Empires II");
+  }
+
   async getAllTournaments(): Promise<Tournament[]> {
     const response = await this.api.getTournaments(
       "Age_of_Empires_II/Tournaments/Pre_2020" as TournamentCategory

@@ -24,7 +24,7 @@ import { parse } from "../common/parse";
 import { parse as dateParse } from "date-fns";
 import { Match } from "../types/aoe/match";
 import { Player } from "../types/aoe/player";
-import { countries } from "../data/countries";
+import { countries, getCountryByName } from "../data/countries";
 import { Game } from "../types/games";
 import { NodeHtmlMarkdown } from "node-html-markdown";
 import {
@@ -39,6 +39,8 @@ import {
 } from "./aoe/tournament";
 import { imageUrl } from "../data/image";
 import { AOEClient } from "../client/aoe";
+import { getPath } from "../data/url";
+import { HTMLElement } from "node-html-parser";
 
 export class AOEParser {
   parseTeams(teamsResponse: string): Team[] {
@@ -155,9 +157,7 @@ export class AOEParser {
           : undefined,
         tournament: {
           name: tournament?.getAttribute("title") ?? "",
-          path:
-            tournament?.getAttribute("href")?.replace(`/${Game.AOE}/`, "") ??
-            "",
+          path: getPath(tournament) ?? "",
           image: imageUrl(tournament?.querySelector("img")),
         },
       };
@@ -209,12 +209,15 @@ export class AOEParser {
         tournamentSection.querySelectorAll(".gridRow");
 
       for (const tournamentDetails of tournamentDetailBoxes) {
-        const tier = tournamentDetails.querySelector(
-          ".Tier > span:not(.GameIcon) a"
-        )?.textContent as TournamentCategory | undefined;
+        const tier = getPath(
+          tournamentDetails.querySelector(".Tier > span:not(.GameIcon) a")
+        ) as TournamentCategory | undefined;
         const leagueImage = tournamentDetails.querySelector(
           ".Tournament .league-icon-small-image img"
         );
+        const game =
+          tournamentDetails.querySelector(".Game a")?.getAttribute("title") ??
+          "";
         const league: Tournament["league"] = leagueImage
           ? {
               name: leagueImage.getAttribute("alt") ?? "",
@@ -224,8 +227,7 @@ export class AOEParser {
         const tourLink = tournamentDetails.querySelector(".Tournament > a");
         const name = tourLink?.textContent;
 
-        const url = tourLink?.getAttribute("href");
-        const path = url?.split(`/${Game.AOE}/`).pop() ?? "";
+        const path = getPath(tourLink) ?? "";
 
         const dates = tournamentDetails.querySelector(".Date")?.textContent;
         const prizePool =
@@ -300,7 +302,7 @@ export class AOEParser {
           !tier ||
           !tourLink ||
           !name ||
-          !url ||
+          !path ||
           !dates ||
           !participantsCount
         ) {
@@ -312,6 +314,7 @@ export class AOEParser {
         );
 
         const tournament: Tournament = {
+          game,
           type,
           tier,
           name,
@@ -325,9 +328,7 @@ export class AOEParser {
           location: locationName
             ? {
                 name: locationName,
-                country: countries.find(
-                  (country) => country.name === locationCountry
-                ),
+                country: getCountryByName(locationCountry),
                 type:
                   locationCountry === "World"
                     ? TournamentLocationType.Online
@@ -347,6 +348,7 @@ export class AOEParser {
 
   parseTournament(tournamentResponse: string, path: string): TournamentDetail {
     const tournament: TournamentDetail = {
+      game: "",
       schedule: [],
       type: TournamentType.Unknown,
       tier: Age2TournamentCategory.TierS,
@@ -368,7 +370,7 @@ export class AOEParser {
     const htmlRoot = parse(tournamentResponse);
     const attributes: Record<
       string,
-      { path?: string; text: string }[] | undefined
+      { path?: string; text: string; element: HTMLElement }[] | undefined
     > = {};
 
     const tabRows = htmlRoot.querySelectorAll(".tabs-static");
@@ -376,7 +378,7 @@ export class AOEParser {
       const tabs = [];
       for (const tab of tabRow.querySelectorAll("a")) {
         tabs.push({
-          path: tab.getAttribute("href")?.replace(`/${Game.AOE}/`, "") ?? path,
+          path: getPath(tab) ?? path,
           name: tab.textContent,
           active: tab.parentNode.classList.contains("active"),
         });
@@ -385,14 +387,22 @@ export class AOEParser {
     }
 
     htmlRoot.querySelectorAll(".infobox-description").forEach((info) => {
-      const anchors = info.nextElementSibling.querySelectorAll("a");
+      const anchors = info.nextElementSibling.querySelectorAll(":scope > a");
       const attributeValues =
         anchors.length > 0
-          ? info.nextElementSibling.querySelectorAll("a").map((anchor) => ({
-              path: anchor.getAttribute("href")?.replace(`/${Game.AOE}/`, ""),
-              text: anchor.textContent,
-            }))
-          : [{ text: info.nextElementSibling.textContent }];
+          ? info.nextElementSibling
+              .querySelectorAll(":scope > a")
+              .map((anchor) => ({
+                path: getPath(anchor),
+                text: anchor.textContent,
+                element: anchor,
+              }))
+          : [
+              {
+                text: info.nextElementSibling.textContent,
+                element: info.nextElementSibling,
+              },
+            ];
       attributes[info.textContent.trim().replace(/.$/, "")] = attributeValues;
     });
 
@@ -410,6 +420,29 @@ export class AOEParser {
       path: series?.path,
     };
 
+    const location = attributes["Location"]?.[0];
+    const locationName = location?.text.trim();
+    const locationCountry = location?.element
+      .querySelector(".flag a")
+      ?.getAttribute("title");
+
+    tournament.game = attributes["Game & Version"]?.[0]?.text ?? "";
+    tournament.location = locationName
+      ? {
+          name: locationName,
+          country: getCountryByName(locationCountry),
+          type:
+            locationCountry === "World"
+              ? TournamentLocationType.Online
+              : TournamentLocationType.LAN,
+        }
+      : undefined;
+
+    tournament.gameMode = attributes["Game Mode"]?.[0].text;
+    tournament.venue = attributes["Venue"]?.[0].text;
+    tournament.organizer = attributes["Organizer"]?.[0].text;
+    tournament.version = attributes["Game & Version"]?.[1]?.text;
+
     tournament.prizePool = {
       amount: Number(
         attributes["Prize Pool"]?.[0].text?.replace(/[^0-9.]/g, "")
@@ -422,13 +455,14 @@ export class AOEParser {
     tournament.start = start ? new Date(start) : undefined;
     tournament.end = end ? new Date(end) : undefined;
     tournament.participantsCount = Number(
-      attributes["Number of Players"] || attributes["Number of Teams"]
+      attributes["Number of Players"]?.[0].text ||
+        attributes["Number of Teams"]?.[0].text
     );
 
-    if (attributes["Number of Players"]) {
+    if (attributes["Number of Players"]?.[0].text) {
       tournament.type = TournamentType.Individual;
     }
-    if (attributes["Number of Teams"]) {
+    if (attributes["Number of Teams"]?.[0].text) {
       tournament.type = TournamentType.Team;
     }
 

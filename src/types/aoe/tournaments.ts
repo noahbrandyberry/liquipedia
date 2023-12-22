@@ -79,6 +79,7 @@ export interface TournamentSection {
 }
 
 export interface Tournament {
+  game: string;
   type: TournamentType;
   tier: TournamentCategory;
   name: string;
@@ -210,4 +211,8 @@ export interface TournamentDetail extends Tournament {
   tabs: Array<Tab[]>;
   results: PlayoffMatch[];
   prizes: Prize[];
+  version?: string;
+  organizer?: string;
+  gameMode?: string;
+  venue?: string;
 }
