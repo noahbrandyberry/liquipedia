@@ -1,4 +1,4 @@
-import { type WikiData } from "cejs";
+import { WikiData } from "../wikitext/CeJS_wiki";
 
 // Formats:
 // ``` [

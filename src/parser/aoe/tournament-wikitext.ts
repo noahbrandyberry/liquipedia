@@ -1,13 +1,14 @@
-import CeL, { type WikiData } from "cejs";
 import { parseTemplate } from "../../data/template";
 import { parse } from "../../common/parse";
 import { parse as dateParse } from "date-fns";
 import {
   EventParticipant,
   EventPlayer,
+  Playoff,
   PlayoffGame,
   PlayoffRound,
 } from "../../types/aoe";
+import { type WikiData, wiki } from "../../wikitext/CeJS_wiki";
 
 function removeEmpty(data: WikiData): WikiData {
   return data.reduce<WikiData>((acc, row) => {
@@ -27,11 +28,11 @@ function removeEmpty(data: WikiData): WikiData {
 }
 
 export const parseTournamentWikiText = (tournamentResponse: string) => {
-  CeL.run(["application.net.wiki"]);
+  // CeL.run(["application.net.wiki"]);
   const parsedWikiText = removeEmpty(
-    CeL.wiki.parse(
+    wiki.parse(
       parse(tournamentResponse.replace(/<!--(.*?)-->/g, "")).textContent
-    )
+    ) as WikiData
   );
 
   const data = parsedWikiText.reduce<
@@ -63,10 +64,24 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
 
   // return data as unknown as TournamentDetail;
 
-  const bracket = data.find(
-    (x): x is { title: string; content: WikiData } =>
-      typeof x !== "string" && x.title === "Results"
-  )?.content[0] as WikiData;
+  let results =
+    data.find(
+      (x): x is { title: string; content: WikiData } =>
+        typeof x !== "string" && x.title === "Playoffs"
+    )?.content ?? [];
+
+  if (results.length === 0) {
+    results =
+      data.find(
+        (x): x is { title: string; content: WikiData } =>
+          typeof x !== "string" && x.title === "Results"
+      )?.content ?? [];
+  }
+
+  const index = results.findIndex(
+    (r) => r[0]?.[1]?.[0] === "Playoffs" || r[1]?.[0] === "Playoffs"
+  );
+  const bracket = results[index < 0 ? 0 : index + 1];
 
   const { templateName, id, ...bracketData } = parseTemplate(bracket);
 
@@ -156,5 +171,5 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
     return acc;
   }, []);
 
-  return [{ rounds }];
+  return rounds.length > 0 ? [{ rounds }] : [];
 };

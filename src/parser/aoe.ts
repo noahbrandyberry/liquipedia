@@ -1,4 +1,3 @@
-import CeL, { type WikiData } from "cejs";
 import { Transfer } from "../types/aoe/transfer";
 import { Team, TeamRegion } from "../types/aoe/team";
 import { Patch } from "../types/aoe/patch";
@@ -21,17 +20,12 @@ import {
   TournamentSection,
   Playoff,
   GameVersion,
-  PlayoffRound,
-  PlayoffMatch,
-  PlayoffGame,
-  EventPlayer,
 } from "../types/aoe/tournaments";
 import { parse } from "../common/parse";
 import { parse as dateParse } from "date-fns";
 import { Match } from "../types/aoe/match";
 import { Player } from "../types/aoe/player";
-import { countries, getCountryByName } from "../data/countries";
-import { Game } from "../types/games";
+import { getCountryByName } from "../data/countries";
 import { NodeHtmlMarkdown } from "node-html-markdown";
 import {
   parseAllGroups,
@@ -47,7 +41,6 @@ import { imageUrl } from "../data/image";
 import { AOEClient } from "../client/aoe";
 import { getPath } from "../data/url";
 import { HTMLElement } from "node-html-parser";
-import { parseTemplate } from "../data/template";
 import { AOEApi } from "../api/aoe";
 import { parseTournamentWikiText } from "./aoe/tournament-wikitext";
 
