@@ -14,6 +14,9 @@ export type Response = {
     text: {
       "*": string;
     };
+    wikitext: {
+      "*": string;
+    };
     title: string;
     pageid: number;
   };

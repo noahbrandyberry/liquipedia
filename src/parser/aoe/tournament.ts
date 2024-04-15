@@ -26,6 +26,7 @@ export const parsePlayoffColumn = (
       .trim() ?? "";
 
   const playoffRound: PlayoffRound = {
+    id: name,
     name,
     format: playoffColumn.querySelector(".bracket-header abbr")?.textContent,
     matches: [],
@@ -110,7 +111,7 @@ export const parseMatchPopup = (popup: HTMLElement | null) => {
     links: [],
     games: [],
     startTime: startTime && !isNaN(startTime.getTime()) ? startTime : undefined,
-    twitchStream: twitchStream,
+    // twitchStream: twitchStream,
     note: NodeHtmlMarkdown.translate(
       popup?.querySelector(".bracket-popup-body-comment")?.toString() ?? ""
     ),

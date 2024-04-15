@@ -59,7 +59,10 @@ export class AOEApi {
     return this.request.get(tournamentTier);
   }
 
-  getTournament(name: string) {
-    return this.request.get(name);
+  getTournament(name: string, wikitext?: boolean) {
+    return this.request.get(
+      name,
+      wikitext ? { params: { prop: "wikitext" } } : undefined
+    );
   }
 }

@@ -1126,6 +1126,11 @@ caniuse-lite@^1.0.30001565:
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001568.tgz#53fa9297273c9a977a560663f48cbea1767518b7"
   integrity sha512-vSUkH84HontZJ88MiNrOau1EBrCqEQYgkC5gIySiDlpsm8sGVrhU7Kx4V6h0tnqaHzIHZv08HlJIwPbL4XL9+A==
 
+cejs@^4.5.9:
+  version "4.5.9"
+  resolved "https://registry.yarnpkg.com/cejs/-/cejs-4.5.9.tgz#54ab0632e99e87e19325110d10a8f5e66c4e7bd1"
+  integrity sha512-Ycs+oVG8smqOqbs8vMlpKrhLwMLJCNgqPu+aWdN4D1lFVlHbYNmEkjr6tPOWNXEvSE8QSvFobrqjFcl1dVvkBQ==
+
 chalk@^2.4.2:
   version "2.4.2"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-2.4.2.tgz#cd42541677a54333cf541a49108c1432b44c9424"
@@ -2653,11 +2658,6 @@ sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
-
-srcset-parse@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/srcset-parse/-/srcset-parse-1.1.0.tgz#73f787f38b73ede2c5af775e0a3465579488122b"
-  integrity sha512-JWp4cG2eybkvKA1QUHGoNK6JDEYcOnSuhzNGjZuYUPqXreDl/VkkvP2sZW7Rmh+icuCttrR9ccb2WPIazyM/Cw==
 
 stack-utils@^2.0.3:
   version "2.0.6"

@@ -3,7 +3,8 @@ import { Country } from "./country";
 export type TournamentCategory =
   | Age1TournamentCategory
   | Age2TournamentCategory
-  | Age3TournamentCategory;
+  | Age3TournamentCategory
+  | Age4TournamentCategory;
 
 export enum Age1TournamentCategory {
   TierS = "Age_of_Empires_I/S-Tier_Tournaments",
@@ -71,6 +72,13 @@ export enum TournamentLocationType {
   Online = "Online",
 }
 
+export enum GameVersion {
+  Age1 = "Age of Empires I",
+  Age2 = "Age of Empires II",
+  Age3 = "Age of Empires III",
+  Age4 = "Age of Empires IV",
+}
+
 export type Amount = { amount: number; code: "USD" };
 
 export interface TournamentSection {
@@ -79,7 +87,7 @@ export interface TournamentSection {
 }
 
 export interface Tournament {
-  game: string;
+  game: GameVersion;
   type: TournamentType;
   tier: TournamentCategory;
   name: string;
@@ -121,7 +129,7 @@ export interface Event {
 
 interface Link {
   url: string;
-  image: string;
+  image?: string;
   text: string;
 }
 
@@ -132,17 +140,18 @@ export interface PlayoffGame {
 }
 
 export interface PlayoffMatch {
+  bestOf?: string;
   name?: string;
   participants: [EventParticipant, EventParticipant] | [EventParticipant];
   winner?: 0 | 1;
   startTime?: Date;
-  twitchStream?: string;
   note?: string;
   links: Link[];
   games: PlayoffGame[];
 }
 
 export interface PlayoffRound {
+  id: string;
   name: string;
   format?: string;
   matches: PlayoffMatch[];

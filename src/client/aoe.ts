@@ -13,6 +13,7 @@ import {
   TournamentDetail,
   TournamentSection,
   Tournament,
+  GameVersion,
 } from "../types/aoe/tournaments";
 import { Item } from "../types/aoe/item";
 
@@ -67,13 +68,13 @@ export class AOEClient {
   }
 
   async getTournaments(
-    tournamentType: TournamentCategory = Age2TournamentCategory.TierS
+    tournamentType: TournamentCategory
   ): Promise<TournamentSection[]> {
     const response = await this.api.getTournaments(tournamentType);
     return this.parser.parseTournaments(response.parse.text["*"]);
   }
 
-  async getUpcomingTournaments(): Promise<Tournament[]> {
+  async getUpcomingTournaments(game: GameVersion): Promise<Tournament[]> {
     const response = await this.api.getTournaments(
       "Portal:Tournaments" as TournamentCategory
     );
@@ -81,7 +82,7 @@ export class AOEClient {
       .parseTournaments(response.parse.text["*"])
       .filter((section) => section.title !== "Three Most Recent")
       .flatMap((section) => section.data)
-      .filter((tournament) => tournament.game === "Age of Empires II");
+      .filter((tournament) => tournament.game === game);
   }
 
   async getAllTournaments(): Promise<Tournament[]> {
@@ -96,6 +97,10 @@ export class AOEClient {
 
   async getTournament(path: string): Promise<TournamentDetail> {
     const response = await this.api.getTournament(path);
-    return this.parser.parseTournament(response.parse.text["*"], path);
+    return await this.parser.parseTournament(
+      response.parse.text["*"],
+      path,
+      this.api
+    );
   }
 }

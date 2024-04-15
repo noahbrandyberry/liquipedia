@@ -1,3 +1,4 @@
+import CeL, { type WikiData } from "cejs";
 import { Transfer } from "../types/aoe/transfer";
 import { Team, TeamRegion } from "../types/aoe/team";
 import { Patch } from "../types/aoe/patch";
@@ -19,6 +20,11 @@ import {
   EventParticipant,
   TournamentSection,
   Playoff,
+  GameVersion,
+  PlayoffRound,
+  PlayoffMatch,
+  PlayoffGame,
+  EventPlayer,
 } from "../types/aoe/tournaments";
 import { parse } from "../common/parse";
 import { parse as dateParse } from "date-fns";
@@ -41,6 +47,9 @@ import { imageUrl } from "../data/image";
 import { AOEClient } from "../client/aoe";
 import { getPath } from "../data/url";
 import { HTMLElement } from "node-html-parser";
+import { parseTemplate } from "../data/template";
+import { AOEApi } from "../api/aoe";
+import { parseTournamentWikiText } from "./aoe/tournament-wikitext";
 
 export class AOEParser {
   parseTeams(teamsResponse: string): Team[] {
@@ -215,9 +224,9 @@ export class AOEParser {
         const leagueImage = tournamentDetails.querySelector(
           ".Tournament .league-icon-small-image img"
         );
-        const game =
-          tournamentDetails.querySelector(".Game a")?.getAttribute("title") ??
-          "";
+        const game = (tournamentDetails
+          .querySelector(".Game a")
+          ?.getAttribute("title") ?? "") as GameVersion;
         const league: Tournament["league"] = leagueImage
           ? {
               name: leagueImage.getAttribute("alt") ?? "",
@@ -346,9 +355,13 @@ export class AOEParser {
     return tournamentSections;
   }
 
-  parseTournament(tournamentResponse: string, path: string): TournamentDetail {
+  async parseTournament(
+    tournamentResponse: string,
+    path: string,
+    api: AOEApi
+  ): Promise<TournamentDetail> {
     const tournament: TournamentDetail = {
-      game: "",
+      game: GameVersion.Age1,
       schedule: [],
       type: TournamentType.Unknown,
       tier: Age2TournamentCategory.TierS,
@@ -426,7 +439,8 @@ export class AOEParser {
       .querySelector(".flag a")
       ?.getAttribute("title");
 
-    tournament.game = attributes["Game & Version"]?.[0]?.text ?? "";
+    tournament.game = (attributes["Game & Version"]?.[0]?.text ??
+      "") as GameVersion;
     tournament.location = locationName
       ? {
           name: locationName,
@@ -668,6 +682,13 @@ export class AOEParser {
           },
         ],
       });
+    }
+
+    if (tournament.playoffs.length === 0) {
+      const wikiTextResponse = await api.getTournament(path, true);
+      tournament.playoffs = parseTournamentWikiText(
+        wikiTextResponse.parse.wikitext["*"]
+      );
     }
 
     return tournament;
