@@ -1,4 +1,4 @@
-import { Liquipedia } from "../src";
+import { Age2TournamentCategory, Liquipedia } from "../src";
 const fs = require("node:fs/promises");
 
 const liquipedia = new Liquipedia({
@@ -6,7 +6,9 @@ const liquipedia = new Liquipedia({
 });
 
 // test("parses tournaments correctly", async () => {
-//   const tournaments = await liquipedia.aoe.getUpcomingTournaments();
+//   const tournaments = await liquipedia.aoe.getTournaments(
+//     Age2TournamentCategory.TierS
+//   );
 
 //   await fs.writeFile(
 //     "./data/tournaments.json",
@@ -15,9 +17,7 @@ const liquipedia = new Liquipedia({
 // });
 
 // test("parses series of tournaments correctly", async () => {
-//   const tournaments = await liquipedia.aoe.getTournaments(
-//     "Nili%27s_Apartment_Cup" as any
-//   );
+//   const tournaments = await liquipedia.aoe.getTournaments("Warlords" as any);
 
 //   await fs.writeFile(
 //     "./data/series.json",
@@ -36,7 +36,7 @@ const liquipedia = new Liquipedia({
 
 test("parses tournament correctly", async () => {
   const tournament = await liquipedia.aoe.getTournament(
-    "Energy%27s_Slapfest/2"
+    "Thalassocracy_Cup/Ro128_%26_Ro64"
   );
 
   await fs.writeFile(

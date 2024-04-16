@@ -78,7 +78,7 @@ export const parsePlayoffMatch = (
       : previous.textContent.trim();
 
   const match: PlayoffMatch = {
-    name,
+    header: name ? { name } : undefined,
     participants: participant2 ? [participant1, participant2] : [participant1],
     winner:
       participant2 &&
@@ -317,9 +317,13 @@ export const parseGroupParticipant = (participant: HTMLElement) => {
 const parseGroupRounds = (roundsTable: HTMLElement): Round[] => {
   const rounds: Round[] = [];
 
-  roundsTable?.querySelectorAll("tr").forEach((groupElement) => {
+  roundsTable?.querySelectorAll("tr").forEach((groupElement, index) => {
     if (groupElement.querySelector(".group-table-countdown")) {
-      rounds.push({ name: groupElement.textContent, matches: [] });
+      rounds.push({
+        id: `round-${index}`,
+        name: groupElement.textContent,
+        matches: [],
+      });
     }
 
     if (groupElement.classList.contains("match-row")) {

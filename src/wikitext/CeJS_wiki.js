@@ -142,10 +142,6 @@ return {module_function_1,module_class_1};
    * 在舊的 browser 中，undefined 可能不存在。
    */
   (function (globalThis) {
-    if (false)
-      if (typeof globalThis !== "object" && typeof globalThis !== "function")
-        throw new Error("No globalThis object specified!");
-
     var // https://developers.google.com/closure/compiler/docs/js-for-compiler
       /** @const */ library_name = "CeL",
       /**
@@ -204,12 +200,6 @@ return {module_function_1,module_class_1};
     } catch (e) {
       // throw { message: '' };
       throw new Error(library_name + ": Cannot get the global scope object!");
-    }
-
-    if (false) {
-      _Global.JustANumber = 2;
-      var _GlobalPrototype = _Global.constructor.prototype;
-      _GlobalPrototype.JustANumber = 2;
     }
 
     // 若已經定義過，跳過。因為已有對 conflict 的對策，因此跳過。
@@ -9491,86 +9481,12 @@ OS='UNIX'; // unknown
 
 		 * </code>
 		 */
-      var library_base_path,
+      var library_base_path = "",
         /**
          * 設定 library base path，並以此決定 module path。
          */
         setup_library_base_path = function () {
-          if (!library_base_path) {
-            // 當執行程式為 library base (ce.js)，則採用本執行程式所附帶之整組 library；
-            if (false) {
-              console.log([
-                library_namespace.env.script_name,
-                library_namespace.env.main_script_name,
-                library_namespace.env.registry_path,
-              ]);
-            }
-
-            var old_namespace = library_namespace.get_old_namespace();
-            // 採用已經特別指定的路徑。
-            if (
-              library_namespace.is_Object(old_namespace) &&
-              (library_base_path = old_namespace.library_path)
-            ) {
-              // e.g., require() from electron
-              // /path
-              // C:\path
-              if (!/^([A-Z]:)?[\\\/]/i.test(library_base_path)) {
-                // assert: library_base_path is relative path
-                // library_namespace.debug(library_namespace.get_script_full_name());
-                library_base_path = library_namespace.simplify_path(
-                  library_namespace
-                    .get_script_full_name()
-                    .replace(/[^\\\/]*$/, library_base_path)
-                );
-              }
-              library_base_path = library_namespace
-                .simplify_path(library_base_path)
-                .replace(/[^\\\/]*$/, "");
-            }
-
-            // 否則先嘗試存放在 registry 中的 path。
-            if (
-              !library_base_path &&
-              library_namespace.env.script_name !==
-                library_namespace.env.main_script_name
-            ) {
-              library_base_path = library_namespace.env.registry_path;
-            }
-
-            // 盡可能先檢查較具特徵、比較長的名稱: "ce.js"→"ce"。
-            if (!library_base_path) {
-              library_base_path =
-                library_namespace.get_script_base_path(
-                  library_namespace.env.main_script
-                ) ||
-                library_namespace.get_script_base_path(
-                  library_namespace.env.main_script_name
-                ) ||
-                library_namespace.get_script_base_path();
-            }
-
-            if (library_base_path) {
-              setup_library_base_path = function () {
-                return library_base_path;
-              };
-              library_namespace.debug(
-                'library base path: [<a href="' +
-                  encodeURI(library_base_path) +
-                  '">' +
-                  library_base_path +
-                  "</a>]",
-                2,
-                "setup_library_base_path"
-              );
-            } else {
-              library_namespace.warn(
-                "setup_library_base_path: Cannot detect the library base path!"
-              );
-            }
-          }
-
-          library_namespace.env.library_base_path = library_base_path;
+          library_namespace.env.library_base_path = "";
           // console.log(library_base_path);
           return library_base_path;
         };

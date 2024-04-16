@@ -71,7 +71,10 @@ export class AOEClient {
     tournamentType: TournamentCategory
   ): Promise<TournamentSection[]> {
     const response = await this.api.getTournaments(tournamentType);
-    return this.parser.parseTournaments(response.parse.text["*"]);
+    return this.parser.parseTournaments(
+      response.parse.text["*"],
+      tournamentType
+    );
   }
 
   async getUpcomingTournaments(game: GameVersion): Promise<Tournament[]> {

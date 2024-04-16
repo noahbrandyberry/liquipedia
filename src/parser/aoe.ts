@@ -20,6 +20,8 @@ import {
   TournamentSection,
   Playoff,
   GameVersion,
+  PlayoffMatch,
+  BroadcastTab,
 } from "../types/aoe/tournaments";
 import { parse } from "../common/parse";
 import { parse as dateParse } from "date-fns";
@@ -134,7 +136,14 @@ export class AOEParser {
         ".league-icon-small-image > a"
       );
 
-      if (!participant1 || !participant2 || !bestOf || !matchTime) {
+      if (
+        !participant1 ||
+        !participant2 ||
+        !bestOf ||
+        !matchTime ||
+        participant1.name.trim().toLowerCase() === "tbd" ||
+        participant2.name.trim().toLowerCase() === "tbd"
+      ) {
         continue;
       }
 
@@ -194,7 +203,10 @@ export class AOEParser {
     return allTournaments;
   }
 
-  parseTournaments(tournamentsResponse: string): TournamentSection[] {
+  parseTournaments(
+    tournamentsResponse: string,
+    category?: TournamentCategory
+  ): TournamentSection[] {
     const tournamentSections: TournamentSection[] = [];
 
     const htmlRoot = parse(tournamentsResponse);
@@ -211,9 +223,10 @@ export class AOEParser {
         tournamentSection.querySelectorAll(".gridRow");
 
       for (const tournamentDetails of tournamentDetailBoxes) {
-        const tier = getPath(
-          tournamentDetails.querySelector(".Tier > span:not(.GameIcon) a")
-        ) as TournamentCategory | undefined;
+        const tier =
+          (getPath(
+            tournamentDetails.querySelector(".Tier > span:not(.GameIcon) a")
+          ) as TournamentCategory | undefined) || category;
         const leagueImage = tournamentDetails.querySelector(
           ".Tournament .league-icon-small-image img"
         );
@@ -477,18 +490,46 @@ export class AOEParser {
       htmlRoot.querySelector(".mw-parser-output > p")?.toString() ?? ""
     );
 
-    tournament.broadcastTalent = NodeHtmlMarkdown.translate(
-      htmlRoot
-        .querySelector("h3:has(#Broadcast_Talent) + div .tabs-content")
-        ?.toString() ?? ""
-    );
+    tournament.broadcastTalent = htmlRoot
+      .querySelectorAll("h3:has(#Broadcast_Talent) + div .nav-tabs li")
+      .map<BroadcastTab | null>((tab) => {
+        const tabNumber = tab.classNames
+          .split(" ")
+          .find((c) => c.startsWith("tab"))
+          ?.replace(/[^0-9]/g, "");
 
-    if (!tournament.broadcastTalent) {
-      tournament.broadcastTalent = NodeHtmlMarkdown.translate(
-        htmlRoot.querySelector("h3:has(#Broadcast_Talent) + div")?.toString() ??
-          ""
-      );
+        if (!tabNumber) {
+          return null;
+        }
+        const name = tab.text.trim();
+        const content = NodeHtmlMarkdown.translate(
+          htmlRoot
+            .querySelector(
+              `h3:has(#Broadcast_Talent) + div .tabs-content .content${tabNumber}`
+            )
+            ?.toString() ?? ""
+        );
+
+        return { name, content };
+      })
+      .filter((b): b is BroadcastTab => !!b);
+
+    if (!tournament.broadcastTalent?.length) {
+      tournament.broadcastTalent = [
+        {
+          name: "Broadcast",
+          content: NodeHtmlMarkdown.translate(
+            htmlRoot
+              .querySelector("h3:has(#Broadcast_Talent) + div")
+              ?.toString() ?? ""
+          ),
+        },
+      ];
     }
+
+    tournament.broadcastTalent = tournament.broadcastTalent.filter(
+      (broadcast) => broadcast.content
+    );
 
     tournament.format = NodeHtmlMarkdown.translate(
       htmlRoot.querySelector("h3:has(#Format) + ul")?.toString() ?? ""
@@ -517,8 +558,9 @@ export class AOEParser {
             ?.querySelectorAll("tr:not(:first-child)")
             .map(parseGroupParticipant) ?? [],
         rounds:
-          multipleGroups?.querySelectorAll(".matchlist").map((round) => {
+          multipleGroups?.querySelectorAll(".matchlist").map((round, index) => {
             return {
+              id: `round-${index + 1}`,
               name:
                 round.querySelector("tr:first-child")?.textContent.trim() ?? "",
               matches: round
@@ -537,7 +579,12 @@ export class AOEParser {
 
     tournament.results = htmlRoot
       .querySelectorAll(".showmatch")
-      .map((showmatch) => {
+      .map<PlayoffMatch | null>((showmatch) => {
+        if (
+          showmatch.parentNode.getAttribute("style")?.includes("display: none;")
+        ) {
+          return null;
+        }
         const participants = showmatch.querySelector("tr:first-child");
         const popup = showmatch.querySelector("tr:last-child");
         const [participant1, participant2]: EventParticipant[] =
@@ -574,7 +621,8 @@ export class AOEParser {
               : undefined,
           ...parseMatchPopup(popup),
         };
-      });
+      })
+      .filter((result): result is PlayoffMatch => !!result);
 
     tournament.prizes = htmlRoot
       .querySelectorAll(

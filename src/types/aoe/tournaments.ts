@@ -141,7 +141,7 @@ export interface PlayoffGame {
 
 export interface PlayoffMatch {
   bestOf?: string;
-  name?: string;
+  header?: { name: string; format?: string };
   participants: [EventParticipant, EventParticipant] | [EventParticipant];
   winner?: 0 | 1;
   startTime?: Date;
@@ -150,12 +150,7 @@ export interface PlayoffMatch {
   games: PlayoffGame[];
 }
 
-export interface PlayoffRound {
-  id: string;
-  name: string;
-  format?: string;
-  matches: PlayoffMatch[];
-}
+export type PlayoffRound = Round;
 
 export interface Tab {
   name: string;
@@ -185,7 +180,9 @@ export interface GroupParticipant extends Omit<EventParticipant, "score"> {
 }
 
 export interface Round {
+  id: string;
   name: string;
+  format?: string;
   matches: PlayoffMatch[];
 }
 
@@ -202,14 +199,20 @@ export interface Prize {
 }
 
 export interface Playoff {
+  advances?: EventParticipant[];
   name?: string;
   rounds: PlayoffRound[];
+}
+
+export interface BroadcastTab {
+  name: string;
+  content: string;
 }
 
 export interface TournamentDetail extends Tournament {
   description: string;
   format: string;
-  broadcastTalent?: string;
+  broadcastTalent?: BroadcastTab[];
   rules: string;
   maps: Map[];
   schedule: Event[];
