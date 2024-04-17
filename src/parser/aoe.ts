@@ -363,15 +363,14 @@ export class AOEParser {
 
   async parseTournament(
     tournamentResponse: string,
+    title: string,
     path: string,
     api: AOEApi
   ): Promise<TournamentDetail> {
     const tournament: TournamentDetail = {
-      game: GameVersion.Age1,
       schedule: [],
       type: TournamentType.Unknown,
-      tier: Age2TournamentCategory.TierS,
-      name: "",
+      name: parse(title).textContent,
       description: "",
       format: "",
       rules: "",
@@ -427,17 +426,15 @@ export class AOEParser {
 
     const series = attributes["Series"]?.[0];
 
-    tournament.name =
-      htmlRoot
-        .querySelector(".infobox-header")
-        ?.childNodes.find((node) => node.nodeType === 3)
-        ?.textContent.trim() ?? "";
+    const image = imageUrl(htmlRoot.querySelector(".infobox-image img"), false);
 
-    tournament.league = {
-      image: imageUrl(htmlRoot.querySelector(".infobox-image img")),
-      name: series?.text ?? "",
-      path: series?.path,
-    };
+    if (image) {
+      tournament.league = {
+        image,
+        name: series?.text ?? "",
+        path: series?.path,
+      };
+    }
 
     const location = attributes["Location"]?.[0];
     const locationName = location?.text.trim();
@@ -462,13 +459,17 @@ export class AOEParser {
     tournament.venue = attributes["Venue"]?.[0].text;
     tournament.organizer = attributes["Organizer"]?.[0].text;
     tournament.version = attributes["Game & Version"]?.[1]?.text;
+    const prizePool = Number(
+      attributes["Prize Pool"]?.[0].text?.replace(/[^0-9.]/g, "")
+    );
 
-    tournament.prizePool = {
-      amount: Number(
-        attributes["Prize Pool"]?.[0].text?.replace(/[^0-9.]/g, "")
-      ),
-      code: "USD",
-    };
+    if (prizePool && !isNaN(prizePool)) {
+      tournament.prizePool = {
+        amount: prizePool,
+        code: "USD",
+      };
+    }
+
     const start =
       attributes["Start Date"]?.[0].text ?? attributes["Date"]?.[0].text ?? "";
     const end = attributes["End Date"]?.[0].text ?? "";
@@ -541,7 +542,11 @@ export class AOEParser {
     );
 
     tournament.scheduleNote = NodeHtmlMarkdown.translate(
-      htmlRoot.querySelector("h3:has(#Schedule) + ul")?.toString() ?? ""
+      htmlRoot
+        .querySelector(
+          "h3:has(#Schedule) + ul, h3:has(#Schedule) + .table-responsive + ul"
+        )
+        ?.toString() ?? ""
     );
 
     const multipleGroups = htmlRoot.querySelector(".toggle-group");

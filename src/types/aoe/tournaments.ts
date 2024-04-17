@@ -209,7 +209,9 @@ export interface BroadcastTab {
   content: string;
 }
 
-export interface TournamentDetail extends Tournament {
+export interface TournamentDetail extends Omit<Tournament, "tier" | "game"> {
+  tier?: TournamentCategory;
+  game?: GameVersion;
   description: string;
   format: string;
   broadcastTalent?: BroadcastTab[];

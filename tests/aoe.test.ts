@@ -35,9 +35,7 @@ const liquipedia = new Liquipedia({
 // });
 
 test("parses tournament correctly", async () => {
-  const tournament = await liquipedia.aoe.getTournament(
-    "Thalassocracy_Cup/Ro128_%26_Ro64"
-  );
+  const tournament = await liquipedia.aoe.getTournament("Hidden_Cup/5");
 
   await fs.writeFile(
     "./data/tournament.json",

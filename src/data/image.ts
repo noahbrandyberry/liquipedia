@@ -9,7 +9,7 @@ const srcSetParse = (srcset: string) => {
   });
 };
 
-export const imageUrl = (image?: HTMLElement | null) => {
+export const imageUrl = (image?: HTMLElement | null, allowDefault = true) => {
   const defaultPath =
     "/commons/images/thumb/3/35/Age_of_Empires_default_allmode.png/99px-Age_of_Empires_default_allmode.png";
   const baseUrl = "https://liquipedia.net";
@@ -22,6 +22,9 @@ export const imageUrl = (image?: HTMLElement | null) => {
   }
 
   if (!path || path.includes("Logo_filler_event.png")) {
+    if (!allowDefault) {
+      return "";
+    }
     path = defaultPath;
   }
   return baseUrl + path;

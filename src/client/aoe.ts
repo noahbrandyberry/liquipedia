@@ -102,6 +102,7 @@ export class AOEClient {
     const response = await this.api.getTournament(path);
     return await this.parser.parseTournament(
       response.parse.text["*"],
+      response.parse.displaytitle,
       path,
       this.api
     );

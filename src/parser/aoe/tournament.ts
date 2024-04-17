@@ -182,7 +182,7 @@ export const parseParticipant = (player: HTMLElement): EventParticipant => {
   const scoreText = player?.querySelector(".bracket-score")?.textContent;
   const score = isNaN(Number(scoreText)) ? scoreText : Number(scoreText);
   const image = imageUrl(
-    player?.querySelector(".team-template-image-icon img, .flag > img")
+    player?.querySelector(".team-template-image-icon img, .flag img")
   );
 
   return { name, score, image };

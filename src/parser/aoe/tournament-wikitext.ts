@@ -159,8 +159,12 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
             const roundId = roundKey
               .replace("header", "")
               .replace(/M[0-9]+/, "");
-            const roundName = roundData[0].toString().replace(" (", "");
-            const bestOf = roundData[1].toString().replace("abbr/", "");
+            const roundName = Array.isArray(roundData)
+              ? roundData[0].toString().replace(" (", "")
+              : roundData;
+            const bestOf = Array.isArray(roundData)
+              ? roundData[1].toString().replace("abbr/", "")
+              : "";
 
             if (roundIds.includes(roundId) || roundId === "RxMTP") {
               extraHeaders[roundKey.replace("header", "")] = {
@@ -277,7 +281,9 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
                     text: key,
                     url: value?.toString() ?? "",
                   })),
-                participants: [participant1, participant2],
+                participants: compact([participant1, participant2]) as
+                  | [EventParticipant, EventParticipant]
+                  | [EventParticipant],
                 games,
               });
             }
