@@ -99,13 +99,12 @@ export const parseMatchPopup = (popup: HTMLElement | null) => {
   const startTime = new Date(
     Number(
       popup
-        ?.querySelector(".bracket-popup-body-time .timer-object")
+        ?.querySelector(
+          ".bracket-popup-body-time .timer-object, .match-countdown-block .timer-object"
+        )
         ?.getAttribute("data-timestamp")
     ) * 1000
   );
-  const twitchStream = popup
-    ?.querySelector(".bracket-popup-body-time .timer-object")
-    ?.getAttribute("data-stream-twitch");
 
   const match: Omit<PlayoffMatch, "participants"> = {
     links: [],
@@ -117,7 +116,9 @@ export const parseMatchPopup = (popup: HTMLElement | null) => {
     ),
   };
 
-  const matchLinks = popup?.querySelectorAll(".bracket-popup-footer a") ?? [];
+  const matchLinks =
+    popup?.querySelectorAll(".bracket-popup-footer a, .brkts-popup-footer a") ??
+    [];
   for (const matchLink of matchLinks) {
     match.links.push({
       url: matchLink.getAttribute("href") ?? "",
@@ -128,7 +129,10 @@ export const parseMatchPopup = (popup: HTMLElement | null) => {
     });
   }
 
-  const matchGames = popup?.querySelectorAll(".bracket-popup-body-match") ?? [];
+  const matchGames =
+    popup?.querySelectorAll(
+      ".bracket-popup-body-match, .brkts-popup-body-game"
+    ) ?? [];
   for (const matchGame of matchGames) {
     match.games.push(parsePlayoffGame(matchGame));
   }
@@ -159,7 +163,7 @@ export const parsePlayoffGame = (playoffGame: HTMLElement): PlayoffGame => {
     teams.length > 0
       ? teams.findIndex((team) => team.classList.contains("bg-win"))
       : playoffGame
-          .querySelectorAll(".fa-check")
+          .querySelectorAll(".fa-check, .brkts-popup-spaced > img")
           .findIndex((team) => team.classList.contains("forest-green-text"));
 
   return {

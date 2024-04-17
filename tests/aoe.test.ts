@@ -35,7 +35,9 @@ const liquipedia = new Liquipedia({
 // });
 
 test("parses tournament correctly", async () => {
-  const tournament = await liquipedia.aoe.getTournament("Warlords/3");
+  const tournament = await liquipedia.aoe.getTournament(
+    "Thalassocracy_Cup/Showmatch"
+  );
 
   await fs.writeFile(
     "./data/tournament.json",

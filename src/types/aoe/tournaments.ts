@@ -124,6 +124,7 @@ export interface EventParticipant {
 export interface Event {
   date: Date;
   format?: string;
+  round?: string;
   participants: [EventParticipant, EventParticipant];
 }
 
@@ -224,6 +225,7 @@ export interface TournamentDetail extends Omit<Tournament, "tier" | "game"> {
   groups: Group[];
   tabs: Array<Tab[]>;
   results: PlayoffMatch[];
+  resultsNote?: string;
   prizes: Prize[];
   version?: string;
   organizer?: string;

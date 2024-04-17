@@ -590,19 +590,27 @@ export class AOEParser {
       tournament.participants = parseAllParticipants(participantsTable);
     }
 
+    tournament.resultsNote = NodeHtmlMarkdown.translate(
+      htmlRoot.querySelector("h2:has(#Showmatch) + ul")?.toString() ?? ""
+    );
+
     tournament.results = htmlRoot
-      .querySelectorAll(".showmatch")
+      .querySelectorAll(".showmatch, .brkts-match-info-flat")
       .map<PlayoffMatch | null>((showmatch) => {
         if (
           showmatch.parentNode.getAttribute("style")?.includes("display: none;")
         ) {
           return null;
         }
-        const participants = showmatch.querySelector("tr:first-child");
-        const popup = showmatch.querySelector("tr:last-child");
+        const participants = showmatch.querySelector(
+          "tr:first-child, div:first-child"
+        );
+        const popup = showmatch.classList.contains("brkts-match-info-flat")
+          ? showmatch
+          : showmatch.querySelector("div:last-child");
         const [participant1, participant2]: EventParticipant[] =
           participants
-            ?.querySelectorAll("th:first-child, th:last-child")
+            ?.querySelectorAll("th:first-child, th:last-child, .block-player")
             .map((participant) => ({
               name: participant.textContent.trim(),
               image: imageUrl(participant.querySelector("img")),
@@ -610,11 +618,20 @@ export class AOEParser {
 
         const [score1, score2] =
           participants
-            ?.querySelectorAll("th:nth-child(2), th:nth-child(3)")
+            ?.querySelectorAll(
+              "th:nth-child(2), th:nth-child(3), .brkts-popup-header-opponent-score-left, .brkts-popup-header-opponent-score-right"
+            )
             .map((scoreElement) => {
-              const scoreText = scoreElement.childNodes.find(
-                (node) => node.nodeType === 3
-              )?.textContent;
+              const scoreText =
+                scoreElement.classList.contains(
+                  "brkts-popup-header-opponent-score-left"
+                ) ||
+                scoreElement.classList.contains(
+                  "brkts-popup-header-opponent-score-right"
+                )
+                  ? scoreElement.textContent
+                  : scoreElement.childNodes.find((node) => node.nodeType === 3)
+                      ?.textContent;
               const score = isNaN(Number(scoreText))
                 ? scoreText
                 : Number(scoreText);
@@ -722,7 +739,9 @@ export class AOEParser {
 
       tournament.schedule?.push({
         date,
-        format: event.querySelector(".Score abbr")?.textContent,
+        format: event.querySelector(".Score abbr, .Round-solo abbr")
+          ?.textContent,
+        round: event.querySelector(".Round-solo")?.textContent.split(" (")[0],
         participants: [
           {
             name: playerLeft?.textContent?.trim() ?? "",

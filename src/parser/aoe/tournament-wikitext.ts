@@ -29,7 +29,6 @@ function removeEmpty(data: WikiData): WikiData {
 }
 
 export const parseTournamentWikiText = (tournamentResponse: string) => {
-  // CeL.run(["application.net.wiki"]);
   const parsedWikiText = removeEmpty(
     wiki.parse(
       parse(tournamentResponse.replace(/<!--(.*?)-->/g, "")).textContent
@@ -62,8 +61,6 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
     },
     [{ title: "Header", content: [] }]
   );
-
-  // return data as unknown as TournamentDetail;
 
   let results =
     data.find(
@@ -281,9 +278,20 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
                     text: key,
                     url: value?.toString() ?? "",
                   })),
-                participants: compact([participant1, participant2]) as
-                  | [EventParticipant, EventParticipant]
-                  | [EventParticipant],
+                participants: compact([
+                  participant1
+                    ? {
+                        ...participant1,
+                        score: games.filter((game) => game.winner === 0).length,
+                      }
+                    : undefined,
+                  participant2
+                    ? {
+                        ...participant2,
+                        score: games.filter((game) => game.winner === 1).length,
+                      }
+                    : undefined,
+                ]) as [EventParticipant, EventParticipant] | [EventParticipant],
                 games,
               });
             }
