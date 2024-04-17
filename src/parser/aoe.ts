@@ -15,7 +15,6 @@ import {
   TournamentType,
   TournamentLocationType,
   TournamentDetail,
-  Age2TournamentCategory,
   EventParticipant,
   TournamentSection,
   Playoff,
@@ -365,6 +364,7 @@ export class AOEParser {
     tournamentResponse: string,
     title: string,
     path: string,
+    client: AOEClient,
     api: AOEApi
   ): Promise<TournamentDetail> {
     const tournament: TournamentDetail = {
@@ -386,6 +386,11 @@ export class AOEParser {
     };
 
     const htmlRoot = parse(tournamentResponse);
+    const redirect = getPath(htmlRoot.querySelector(".redirectText a"));
+    if (redirect) {
+      return client.getTournament(redirect);
+    }
+
     const attributes: Record<
       string,
       { path?: string; text: string; element: HTMLElement }[] | undefined
@@ -425,6 +430,9 @@ export class AOEParser {
     });
 
     const series = attributes["Series"]?.[0];
+    tournament.tier = attributes["Liquipedia Tier"]?.[0]?.path as
+      | TournamentCategory
+      | undefined;
 
     const image = imageUrl(htmlRoot.querySelector(".infobox-image img"), false);
 

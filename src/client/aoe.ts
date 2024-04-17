@@ -104,6 +104,7 @@ export class AOEClient {
       response.parse.text["*"],
       response.parse.displaytitle,
       path,
+      this,
       this.api
     );
   }
