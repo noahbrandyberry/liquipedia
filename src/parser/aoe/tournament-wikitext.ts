@@ -85,7 +85,7 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
             (row) =>
               Array.isArray(row) &&
               row[0][0] === "Stage" &&
-              row[0][1][0] === "Results"
+              (row[0][1][0] === "Results" || row[0][1][0] === "Playoffs")
           )
       )?.content ?? [];
 

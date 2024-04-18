@@ -251,7 +251,8 @@ export const parseAllGroups = (groupsElement: HTMLElement | null): Group[] => {
       const name =
         groupElement.querySelector("tr th > span")?.textContent ?? "";
       const hasRounds =
-        groupElement.nextElementSibling.classList.contains("matchlist");
+        groupElement.nextElementSibling.classList.contains("matchlist") ||
+        groupElement.nextElementSibling.classList.contains("brkts-matchlist");
       const rounds = hasRounds
         ? parseGroupRounds(groupElement.nextElementSibling)
         : [];
@@ -321,8 +322,11 @@ export const parseGroupParticipant = (participant: HTMLElement) => {
 const parseGroupRounds = (roundsTable: HTMLElement): Round[] => {
   const rounds: Round[] = [];
 
-  roundsTable?.querySelectorAll("tr").forEach((groupElement, index) => {
-    if (groupElement.querySelector(".group-table-countdown")) {
+  roundsTable?.querySelectorAll("tr, div").forEach((groupElement, index) => {
+    if (
+      groupElement.querySelector(".group-table-countdown") ||
+      groupElement.classList.contains("brkts-matchlist-header")
+    ) {
       rounds.push({
         id: `round-${index}`,
         name: groupElement.textContent,
@@ -330,7 +334,10 @@ const parseGroupRounds = (roundsTable: HTMLElement): Round[] => {
       });
     }
 
-    if (groupElement.classList.contains("match-row")) {
+    if (
+      groupElement.classList.contains("match-row") ||
+      groupElement.classList.contains("brkts-matchlist-match")
+    ) {
       rounds.at(-1)?.matches.push(parseGroupMatch(groupElement));
     }
   });
@@ -340,14 +347,14 @@ const parseGroupRounds = (roundsTable: HTMLElement): Round[] => {
 
 export const parseGroupMatch = (groupElement: HTMLElement): PlayoffMatch => {
   const [participant1, participant2]: EventParticipant[] = groupElement
-    .querySelectorAll(".matchlistslot")
+    .querySelectorAll(".matchlistslot, .brkts-matchlist-opponent")
     .map((participant) => ({
       name: participant.textContent.trim(),
       image: imageUrl(participant.querySelector("img")),
     }));
 
   const [score1, score2] = groupElement
-    .querySelectorAll("td:not(.matchlistslot)")
+    .querySelectorAll("td:not(.matchlistslot), .brkts-matchlist-score")
     .map((scoreElement) => {
       const scoreText = scoreElement.childNodes.find(
         (node) => node.nodeType === 3
@@ -367,6 +374,8 @@ export const parseGroupMatch = (groupElement: HTMLElement): PlayoffMatch => {
           ? 0
           : 1
         : undefined,
-    ...parseMatchPopup(groupElement.querySelector(".bracket-popup-wrapper")),
+    ...parseMatchPopup(
+      groupElement.querySelector(".bracket-popup-wrapper, .brkts-popup")
+    ),
   };
 };
