@@ -607,7 +607,7 @@ export class AOEParser {
         );
         const popup = showmatch.classList.contains("brkts-match-info-flat")
           ? showmatch
-          : showmatch.querySelector("div:last-child");
+          : showmatch.querySelector(":has(.bracket-popup-body)") ?? showmatch;
         const [participant1, participant2]: EventParticipant[] =
           participants
             ?.querySelectorAll("th:first-child, th:last-child, .block-player")

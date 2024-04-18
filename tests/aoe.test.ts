@@ -36,7 +36,7 @@ const liquipedia = new Liquipedia({
 
 test("parses tournament correctly", async () => {
   const tournament = await liquipedia.aoe.getTournament(
-    "SuperDr4ft/Pro_Edition"
+    "Nili%27s_Apartment_Cup/5"
   );
 
   await fs.writeFile(
