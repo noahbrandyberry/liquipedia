@@ -1140,7 +1140,7 @@ return {module_function_1,module_class_1};
         // e.g., 'Win32'
         platform.OS = navigator.platform;
         // shortcut for Windows
-        platform.Windows = platform.is_Windows();
+        // platform.Windows = platform.is_Windows();
 
         var userAgent = String(navigator.userAgent),
           matched;
@@ -3891,7 +3891,7 @@ OS='UNIX'; // unknown
         // @see os.version()
         _.platform.OS = process.platform;
         // shortcut for Windows
-        _.platform.Windows = _.platform.is_Windows();
+        // _.platform.Windows = _.platform.is_Windows();
 
         // argument vector
         _.env.argv = process.argv;
@@ -30568,38 +30568,6 @@ typeof CeL === "function" &&
           }
         }
 
-        // console.trace(library_namespace.platform.is_Windows());
-        if (library_namespace.platform.is_Windows()) {
-          // TODO:
-          // `REG QUERY HKLM\System\CurrentControlSet\Control\Nls\Language /v
-          // InstallLanguage`
-
-          // https://www.lisenet.com/2014/get-windows-system-information-via-wmi-command-line-wmic/
-          // TODO: `wmic OS get Caption,CSDVersion,OSArchitecture,Version`
-          // require('os').release()
-
-          return (
-            exec(
-              // https://docs.microsoft.com/zh-tw/powershell/module/international/get-winsystemlocale?view=win10-ps
-              'PowerShell.exe -Command "& {Get-WinSystemLocale | Select-Object LCID}"',
-              /(\d+)[^\d]*$/,
-              guess_language.LCID_mapping
-            ) ||
-            // WMIC is deprecated.
-            // https://stackoverflow.com/questions/1610337/how-can-i-find-the-current-windows-language-from-cmd
-            // get 非 Unicode 應用程式的語言與系統地區設定所定義的語言
-            exec(
-              "WMIC.EXE OS GET CodeSet",
-              /(\d+)[^\d]*$/,
-              guess_language.code_page_mapping
-            ) ||
-            // using windows active console code page
-            // https://docs.microsoft.com/en-us/windows/console/console-code-pages
-            // CHCP may get 65001, so we do not use this at first.
-            exec("CHCP", /(\d+)[^\d]*$/, guess_language.code_page_mapping)
-          );
-        }
-
         /**
 		 * <code>
 
@@ -43559,12 +43527,6 @@ typeof CeL === "function" &&
           .replace(/:/g, "：")
           .replace(/</g, "＜")
           .replace(/>/g, "＞");
-
-        if (library_namespace.platform.is_Windows()) {
-          file_name = file_name
-            // 若是以 "." 結尾，在 Windows 7 中會出現問題，無法移動或刪除。
-            .replace(/(.)\.$/, "$1._");
-        }
 
         // 限制長度.
         // http://en.wikipedia.org/wiki/Filename#Length_restrictions
