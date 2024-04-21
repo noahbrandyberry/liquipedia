@@ -3161,6 +3161,56 @@ conversion_table['cn'] = conversion_table['tw'] =
     (session && session.configurations.PATTERN_non_extensiontags) ||
     PATTERN_non_wiki_extensiontags;
 
+  function evaluate_parser_function(options) {
+    var argument_1 = this.parameters[1] && this.parameters[1].toString();
+    var argument_2 = this.parameters[2] && this.parameters[2].toString();
+    var argument_3 = this.parameters[3] && this.parameters[3].toString();
+
+    switch (this.name) {
+      case "len":
+        // {{#len:string}}
+
+        // TODO: ags such as <nowiki> and other tag extensions will always
+        // have a length of zero, since their content is hidden from the
+        // parser.
+        return argument_1.length;
+
+      case "sub":
+        // {{#sub:string|start|length}}
+        return argument_3
+          ? argument_1.substring(argument_2, argument_3)
+          : argument_1.slice(argument_2);
+
+      case "time":
+        // https://www.mediawiki.org/wiki/Help:Extension:ParserFunctions##time
+        // {{#time: format string | date/time object | language code | local
+        // }}
+        if (!argument_2 || argument_2 === "now") {
+          argument_2 = new Date();
+          return (
+            argument_1
+              .replace(/Y/g, argument_2.getUTCFullYear())
+              //
+              .replace(/n/g, argument_2.getUTCMonth() + 1)
+              //
+              .replace(/m/g, (argument_2.getUTCMonth() + 1).pad(2))
+              //
+              .replace(/j/g, argument_2.getUTCDate())
+              //
+              .replace(/d/g, argument_2.getUTCDate().pad(2))
+          );
+          // TODO
+        }
+
+      case "if":
+      // TODO: parse output of {{#if:text|...}}, {{#if:text||...}}
+
+      // TODO
+    }
+
+    return this;
+  }
+
   // or use ((PATTERN_transclusion))
   // allow {{|=...}}, e.g., [[w:zh:Template:Policy]]
   // PATTERN_template

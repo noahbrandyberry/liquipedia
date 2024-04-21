@@ -36,7 +36,9 @@ const liquipedia = new Liquipedia({
 // });
 
 test("parses tournament correctly", async () => {
-  const tournament = await liquipedia.aoe.getTournament("Hidden_Cup/5");
+  const tournament = await liquipedia.aoe.getTournament(
+    "Liga_Brasileira_de_Age_4_(CBAGE)"
+  );
 
   await fs.writeFile(
     "./data/tournament.json",

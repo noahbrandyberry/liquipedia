@@ -557,7 +557,9 @@ export class AOEParser {
         ?.toString() ?? ""
     );
 
-    const multipleGroups = htmlRoot.querySelector(".toggle-group");
+    const multipleGroups = htmlRoot.querySelector(
+      ".toggle-group, h3:has(#Group_Stage) + div"
+    );
     if (multipleGroups?.querySelector(".table-responsive")) {
       tournament.groups = parseAllGroups(multipleGroups);
     } else if (multipleGroups) {

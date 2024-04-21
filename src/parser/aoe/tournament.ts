@@ -1,4 +1,4 @@
-import { HTMLElement } from "node-html-parser";
+import { HTMLElement, NodeType } from "node-html-parser";
 import {
   EventParticipant,
   PlayoffGame,
@@ -249,10 +249,16 @@ export const parseAllGroups = (groupsElement: HTMLElement | null): Group[] => {
   return (
     groupsElement?.querySelectorAll(".table-responsive").map((groupElement) => {
       const name =
-        groupElement.querySelector("tr th > span")?.textContent ?? "";
+        (groupElement.previousElementSibling?.querySelector(".mw-headline")
+          ?.textContent ||
+          groupElement.querySelector("tr th > span")?.textContent) ??
+        "";
       const hasRounds =
-        groupElement.nextElementSibling.classList.contains("matchlist") ||
-        groupElement.nextElementSibling.classList.contains("brkts-matchlist");
+        groupElement.nextElementSibling &&
+        (groupElement.nextElementSibling.classList.contains("matchlist") ||
+          groupElement.nextElementSibling.classList.contains(
+            "brkts-matchlist"
+          ));
       const rounds = hasRounds
         ? parseGroupRounds(groupElement.nextElementSibling)
         : [];
