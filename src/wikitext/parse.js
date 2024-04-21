@@ -3593,7 +3593,7 @@ conversion_table['cn'] = conversion_table['tw'] =
           // 預防 {{Template:name|...}}
           !PATTERN_template_namespaces.test(namespace) &&
           // wiki_API.namespace.hash using lower case
-          namespace.toLowerCase() in wiki_API.namespace.hash;
+          namespace.toLowerCase() in {};
 
         // {{T}}嵌入[[Template:T]]
         // {{Template:T}}嵌入[[Template:T]]

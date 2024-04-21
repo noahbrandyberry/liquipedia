@@ -37,7 +37,7 @@ const liquipedia = new Liquipedia({
 
 test("parses tournament correctly", async () => {
   const tournament = await liquipedia.aoe.getTournament(
-    "Liga_Brasileira_de_Age_4_(CBAGE)"
+    "Liga_Brasileira_de_Age_4_(CBAGE)/Group_Stage"
   );
 
   await fs.writeFile(
