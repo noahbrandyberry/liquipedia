@@ -679,8 +679,16 @@ function parse_wikitext(wikitext, options, queue) {
     return this;
   }
 
-  var Object_clone = function clone(deep, copy_to) {
-    let object = this;
+  var has_spread_operator, clone_Object;
+  try {
+    has_spread_operator = eval(
+      "clone_Object=function(object){return {...object};};"
+    );
+  } catch (e) {
+    // TODO: handle exception
+  }
+
+  var Object_clone = function clone(object, deep, copy_to) {
     if (!object || typeof object !== "object") {
       // assert: object is 純量。
       return object;
@@ -695,10 +703,12 @@ function parse_wikitext(wikitext, options, queue) {
       return JSON.parse(JSON.stringify(object));
     }
 
+    var Array_clone = Array.prototype.slice;
+
     if (!copy_to) {
       if (Array.isArray(object)) {
         // for {Array}
-        return object.clone();
+        return Array_clone(object);
       }
 
       if (clone_Object) {
@@ -720,7 +730,6 @@ function parse_wikitext(wikitext, options, queue) {
   String.prototype.each_between = each_between;
   String.prototype.replace_till_stable = replace_till_stable;
   Array.prototype.truncate = Array_truncate;
-  Object.prototype.clone = Object_clone;
 
   function set_wiki_type(token, type, parent) {
     // console.trace(token);
@@ -1901,7 +1910,7 @@ function parse_wikitext(wikitext, options, queue) {
         callback: options,
       };
     } else {
-      options = library_namespace.setup_options(options);
+      // options = library_namespace.setup_options(options);
     }
 
     // console.trace(wiki_API.parse(section_title, null, []));
@@ -1956,7 +1965,7 @@ function parse_wikitext(wikitext, options, queue) {
                 // recover language conversion -{}-
                 .replace(section_link_START_CONVERT_reg, "-{")
                 .replace(section_link_END_CONVERT_reg, "}-");
-              var _options = Object.clone(options);
+              var _options = Object_clone(options);
               // recursion, self-calling, 遞迴呼叫
               _options.is_recursive = true;
               converted = section_link(converted, _options)[2];
@@ -2534,7 +2543,7 @@ conversion_table['cn'] = conversion_table['tw'] =
             // Initialization
             Object.create(null);
         } else if (conversion_table[uniconvert_from].conversion) {
-          conversion_table[uniconvert_from] = Object.clone(
+          conversion_table[uniconvert_from] = Object_clone(
             // assert:
             // conversion_table[uniconvert_from].type==='convert'
             conversion_table[uniconvert_from].conversion
@@ -4220,7 +4229,7 @@ conversion_table['cn'] = conversion_table['tw'] =
     parameters.link = wiki_API.section_link(
       parameters.toString(),
       // options: pass session. for options.language
-      Object.assign(Object.clone(options), {
+      Object.assign(Object_clone(options), {
         // 重新造一個 options 以避免污染。
         target_array: null,
       })
