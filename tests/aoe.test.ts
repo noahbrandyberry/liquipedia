@@ -1,4 +1,5 @@
 import { Age2TournamentCategory, Liquipedia } from "../src";
+
 const fs = require("node:fs/promises");
 
 const liquipedia = new Liquipedia({
@@ -35,9 +36,7 @@ const liquipedia = new Liquipedia({
 // });
 
 test("parses tournament correctly", async () => {
-  const tournament = await liquipedia.aoe.getTournament(
-    "Nili%27s_Apartment_Cup/5"
-  );
+  const tournament = await liquipedia.aoe.getTournament("Hidden_Cup/5");
 
   await fs.writeFile(
     "./data/tournament.json",

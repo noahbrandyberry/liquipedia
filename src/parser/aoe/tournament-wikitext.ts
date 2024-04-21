@@ -8,7 +8,7 @@ import {
   PlayoffGame,
   PlayoffRound,
 } from "../../types/aoe";
-import { type WikiData, wiki } from "../../wikitext/CeJS_wiki";
+import { parse_wikitext, type WikiData } from "../../wikitext/parse";
 import { compact, sortBy } from "lodash";
 
 function removeEmpty(data: WikiData): WikiData {
@@ -30,7 +30,7 @@ function removeEmpty(data: WikiData): WikiData {
 
 export const parseTournamentWikiText = (tournamentResponse: string) => {
   const parsedWikiText = removeEmpty(
-    wiki.parse(
+    parse_wikitext(
       parse(tournamentResponse.replace(/<!--(.*?)-->/g, "")).textContent
     ) as WikiData
   );
