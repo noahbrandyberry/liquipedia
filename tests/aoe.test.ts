@@ -26,24 +26,28 @@ const liquipedia = new Liquipedia({
 //   );
 // });
 
-// test("parses player correctly", async () => {
-//   const tournaments = await liquipedia.aoe.getPlayer("TheViper");
+test("parses player correctly", async () => {
+  const tournaments = await liquipedia.aoe.getPlayer("TheViper");
 
-//   await fs.writeFile(
-//     "./data/player.json",
-//     JSON.stringify(tournaments, null, 2)
-//   );
-// });
+  await fs.writeFile(
+    "./data/player.json",
+    JSON.stringify(tournaments, null, 2)
+  );
+});
 
 test("parses tournament correctly", async () => {
-  const tournament = await liquipedia.aoe.getTournament(
-    "Liga_Brasileira_de_Age_4_(CBAGE)/Group_Stage"
-  );
+  const tournament = await liquipedia.aoe.getTournament("Thalassocracy_Cup");
 
   await fs.writeFile(
     "./data/tournament.json",
     JSON.stringify(tournament, null, 2)
   );
+});
+
+test("parses map correctly", async () => {
+  const map = await liquipedia.aoe.getMap("Baltic");
+
+  await fs.writeFile("./data/map.json", JSON.stringify(map, null, 2));
 });
 
 // test("parses live matches correctly", async () => {

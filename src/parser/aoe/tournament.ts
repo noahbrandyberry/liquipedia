@@ -13,6 +13,7 @@ import { NodeHtmlMarkdown } from "node-html-markdown";
 import { getCountryByName } from "../../data/countries";
 import { imageUrl } from "../../data/image";
 import compact from "lodash/compact";
+import { getPath } from "../../data/url";
 
 export const parsePlayoffColumn = (
   playoffColumn: HTMLElement
@@ -225,7 +226,7 @@ export const parseMaps = (htmlRoot: HTMLElement): TournamentDetail["maps"] => {
     return {
       name,
       image: imageUrl(mapImage),
-      path: mapName.querySelector("a")?.getAttribute("href"),
+      path: getPath(mapName.querySelector("a")),
       category: category?.[0],
     };
   });

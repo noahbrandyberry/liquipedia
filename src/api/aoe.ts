@@ -65,4 +65,8 @@ export class AOEApi {
       wikitext ? { params: { prop: "wikitext" } } : undefined
     );
   }
+
+  getMap(name: string) {
+    return this.request.get(name);
+  }
 }

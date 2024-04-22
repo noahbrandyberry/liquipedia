@@ -41,9 +41,10 @@ import {
 import { imageUrl } from "../data/image";
 import { AOEClient } from "../client/aoe";
 import { getPath } from "../data/url";
-import { HTMLElement } from "node-html-parser";
 import { AOEApi } from "../api/aoe";
 import { parseTournamentWikiText } from "./aoe/tournament-wikitext";
+import { getAttributes } from "../data/attributes";
+import { MapDetail } from "../types/aoe/map";
 
 export class AOEParser {
   parseTeams(teamsResponse: string): Team[] {
@@ -391,11 +392,6 @@ export class AOEParser {
       return client.getTournament(redirect);
     }
 
-    const attributes: Record<
-      string,
-      { path?: string; text: string; element: HTMLElement }[] | undefined
-    > = {};
-
     const tabRows = htmlRoot.querySelectorAll(".tabs-static");
     for (const tabRow of tabRows) {
       const tabs = [];
@@ -409,25 +405,7 @@ export class AOEParser {
       tournament.tabs.push(tabs);
     }
 
-    htmlRoot.querySelectorAll(".infobox-description").forEach((info) => {
-      const anchors = info.nextElementSibling.querySelectorAll(":scope > a");
-      const attributeValues =
-        anchors.length > 0
-          ? info.nextElementSibling
-              .querySelectorAll(":scope > a")
-              .map((anchor) => ({
-                path: getPath(anchor),
-                text: anchor.textContent,
-                element: anchor,
-              }))
-          : [
-              {
-                text: info.nextElementSibling.textContent,
-                element: info.nextElementSibling,
-              },
-            ];
-      attributes[info.textContent.trim().replace(/.$/, "")] = attributeValues;
-    });
+    const attributes = getAttributes(htmlRoot);
 
     const series = attributes["Series"]?.[0];
     tournament.tier = attributes["Liquipedia Tier"]?.[0]?.path as
@@ -760,10 +738,14 @@ export class AOEParser {
     }
 
     if (tournament.playoffs.length === 0) {
-      const wikiTextResponse = await api.getTournament(path, true);
-      tournament.playoffs = parseTournamentWikiText(
-        wikiTextResponse.parse.wikitext["*"]
-      );
+      try {
+        const wikiTextResponse = await api.getTournament(path, true);
+        tournament.playoffs = parseTournamentWikiText(
+          wikiTextResponse.parse.wikitext["*"]
+        );
+      } catch (error) {
+        console.warn(error);
+      }
     }
 
     return tournament;
@@ -931,8 +913,106 @@ export class AOEParser {
       .querySelector(".infobox-header")
       ?.childNodes.find((node) => node.nodeType === 3)
       ?.textContent.trim();
-    const player: Player = { name: header ?? "" };
+    const attributes = getAttributes(htmlRoot);
+
+    const player: Player = {
+      name: header ?? "",
+      image: imageUrl(htmlRoot.querySelector(".infobox-image img"), false),
+      fullName: attributes["Name"]?.[0]?.text,
+      nationality: getCountryByName(attributes["Nationality"]?.[0]?.text),
+      status: attributes["Status"]?.[0]?.text,
+      yearsActive: attributes["Years Active"]?.[0]?.text,
+      team: attributes["Team"]?.[0]?.text,
+    };
+
+    if (attributes["Born"]?.[0]?.text) {
+      const [birthdate, age] = attributes["Born"][0].text.split(" (");
+
+      player.birthdate = dateParse(birthdate, "MMMM d, y", new Date());
+
+      const parsedAge = Number(age.replace(/[^0-9]/g, ""));
+
+      player.age = isNaN(parsedAge) ? undefined : parsedAge;
+    }
+
+    if (attributes["Approx. Total Winnings"]?.[0]?.text) {
+      const amountNumber = Number(
+        attributes["Approx. Total Winnings"][0].text
+          .replace(/[^\d\.]+/, "")
+          .replace(/,/g, "")
+      );
+
+      player.totalWinnings = isNaN(amountNumber)
+        ? undefined
+        : { amount: amountNumber, code: "USD" };
+    }
+
+    const overviewElement = htmlRoot.querySelector(".mw-parser-output > p");
+    if (overviewElement) {
+      player.overview = NodeHtmlMarkdown.translate(overviewElement.toString());
+    }
+
+    const bioElements = [];
+    let bioElement = htmlRoot.querySelector("h2:has(#Biography) + p");
+    while (bioElement && ["P", "H3", "DIV"].includes(bioElement.tagName)) {
+      if (bioElement.tagName === "H3") {
+        bioElements.push(bioElement.querySelector(".mw-headline"));
+      } else {
+        bioElements.push(bioElement);
+      }
+      bioElement = bioElement.nextElementSibling;
+    }
+
+    if (bioElements.length > 0) {
+      player.bio = NodeHtmlMarkdown.translate(bioElements.join(""));
+    }
 
     return player;
+  }
+
+  parseMap(mapResponse: string): MapDetail {
+    const htmlRoot = parse(mapResponse);
+
+    const header = htmlRoot
+      .querySelector(".infobox-header")
+      ?.childNodes.find((node) => node.nodeType === 3)
+      ?.textContent.trim();
+    const attributes = getAttributes(htmlRoot);
+
+    const map: MapDetail = {
+      name: header ?? "",
+      image: imageUrl(htmlRoot.querySelector(".infobox-image img"), false),
+      creator: attributes["Creator"]?.[0]?.text,
+      type: attributes["Map Type"]?.[0]?.text,
+      walls: attributes["Walls"]?.[0]?.text,
+      nomad: attributes["Nomad"]?.[0]?.text === "Yes",
+    };
+
+    const descriptionElement = htmlRoot.querySelector(".mw-parser-output > p");
+    if (descriptionElement) {
+      map.description = NodeHtmlMarkdown.translate(
+        descriptionElement.toString()
+      );
+    }
+
+    const overviewElements = [];
+    let overviewElement = htmlRoot.querySelector("h2:has(#Overview) + p");
+    while (
+      overviewElement &&
+      ["P", "H3", "DIV"].includes(overviewElement.tagName)
+    ) {
+      if (overviewElement.tagName === "H3") {
+        overviewElements.push(overviewElement.querySelector(".mw-headline"));
+      } else {
+        overviewElements.push(overviewElement);
+      }
+      overviewElement = overviewElement.nextElementSibling;
+    }
+
+    if (overviewElements.length > 0) {
+      map.overview = NodeHtmlMarkdown.translate(overviewElements.join(""));
+    }
+
+    return map;
   }
 }

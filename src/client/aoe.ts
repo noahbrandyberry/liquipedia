@@ -9,13 +9,13 @@ import { AOEApi } from "../api/aoe";
 import { AOEParser } from "../parser/aoe";
 import {
   TournamentCategory,
-  Age2TournamentCategory,
   TournamentDetail,
   TournamentSection,
   Tournament,
   GameVersion,
 } from "../types/aoe/tournaments";
 import { Item } from "../types/aoe/item";
+import { MapDetail } from "../types/aoe/map";
 
 export class AOEClient {
   private api: AOEApi;
@@ -107,5 +107,10 @@ export class AOEClient {
       this,
       this.api
     );
+  }
+
+  async getMap(path: string): Promise<MapDetail> {
+    const response = await this.api.getMap(path);
+    return await this.parser.parseMap(response.parse.text["*"]);
   }
 }

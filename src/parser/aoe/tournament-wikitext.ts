@@ -112,8 +112,11 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
       let name = Array.isArray(r[0]?.[1])
         ? r[0]?.[1]?.[0]?.toString()
         : undefined;
-      let bracket =
-        results[r[0] === "Bracket" ? index : index < 0 ? 0 : index + 1];
+
+      if (results[index + 1]?.[0] === "Bracket") {
+        return;
+      }
+      let bracket = results[r[0] === "Bracket" ? index : index + 1];
       let advances: EventParticipant[] | undefined;
 
       if (r[0] === "GroupToggle") {
