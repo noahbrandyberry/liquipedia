@@ -9,7 +9,7 @@ import {
   PlayoffRound,
 } from "../../types/aoe";
 import { parse_wikitext, type WikiData } from "../../wikitext/parse";
-import { compact, sortBy } from "lodash";
+import { compact, flattenDepth, result, sortBy } from "lodash";
 
 function removeEmpty(data: WikiData): WikiData {
   return data.reduce<WikiData>((acc, row) => {
@@ -74,6 +74,10 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
         (x): x is { title: string; content: WikiData } =>
           typeof x !== "string" && x.title === "Results"
       )?.content ?? [];
+
+    if (flattenDepth(results, 3).every((r) => typeof r === "string")) {
+      results = [];
+    }
   }
 
   if (results.length === 0) {
@@ -85,7 +89,9 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
             (row) =>
               Array.isArray(row) &&
               row[0][0] === "Stage" &&
-              (row[0][1][0] === "Results" || row[0][1][0] === "Playoffs")
+              (row[0][1][0] === "Results" ||
+                row[0][1][0] === "Playoffs" ||
+                row[0][1][0] === "Knockout Stage")
           )
       )?.content ?? [];
 
@@ -93,7 +99,9 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
       (row) =>
         Array.isArray(row) &&
         row[0][0] === "Stage" &&
-        (row[0][1][0] === "Results" || row[0][1][0] === "Playoffs")
+        (row[0][1][0] === "Results" ||
+          row[0][1][0] === "Playoffs" ||
+          row[0][1][0] === "Knockout Stage")
     );
     const possibleResults = results.slice(resultsHeaderIndex + 1);
     results = possibleResults;

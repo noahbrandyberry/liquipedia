@@ -180,10 +180,17 @@ export const parsePlayoffGame = (playoffGame: HTMLElement): PlayoffGame => {
 };
 
 export const parseParticipant = (player: HTMLElement): EventParticipant => {
+  const nameElement = player?.querySelector(
+    "span:not(.flag):not(.team-template-image-icon):not(.team-template-team-icon)"
+  );
   const name =
-    player?.querySelector(
-      "span:not(.flag):not(.team-template-image-icon):not(.team-template-team-icon)"
-    )?.textContent ?? "";
+    (nameElement
+      ?.querySelector("a")
+      ?.getAttribute("title")
+      ?.replace("(page does not exist)", "")
+      .trim() ||
+      nameElement?.textContent) ??
+    "";
   const scoreText = player?.querySelector(".bracket-score")?.textContent;
   const score = isNaN(Number(scoreText)) ? scoreText : Number(scoreText);
   const image = imageUrl(
@@ -236,7 +243,7 @@ export const parseAllParticipants = (
   participantsTable: HTMLElement
 ): EventParticipant[] => {
   return participantsTable
-    .querySelectorAll(".player-row td")
+    .querySelectorAll(".player-row td, .participantTable-entry")
     .map((participant) => {
       return {
         name: participant.textContent.trim(),

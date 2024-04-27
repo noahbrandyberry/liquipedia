@@ -563,7 +563,9 @@ export class AOEParser {
           }) ?? [],
       });
     }
-    const participantsTable = htmlRoot.querySelector(".participanttable");
+    const participantsTable = htmlRoot.querySelector(
+      ".participanttable, .participantTable"
+    );
 
     tournament.maps = parseMaps(htmlRoot);
     if (participantsTable) {
@@ -618,6 +620,9 @@ export class AOEParser {
               return score;
             }) ?? [];
 
+        if (!participant1 || !participant2) {
+          return null;
+        }
         participant1.score = score1;
         participant2.score = score2;
 
