@@ -459,8 +459,10 @@ export class AOEParser {
     const start =
       attributes["Start Date"]?.[0].text ?? attributes["Date"]?.[0].text ?? "";
     const end = attributes["End Date"]?.[0].text ?? "";
-    tournament.start = start ? new Date(start) : undefined;
-    tournament.end = end ? new Date(end) : undefined;
+    tournament.start = start
+      ? dateParse(start, "y-MM-dd", new Date())
+      : undefined;
+    tournament.end = end ? dateParse(end, "y-MM-dd", new Date()) : undefined;
     tournament.participantsCount = Number(
       attributes["Number of Players"]?.[0].text ||
         attributes["Number of Teams"]?.[0].text
