@@ -27,7 +27,7 @@ const liquipedia = new Liquipedia({
 // });
 
 // test("parses player correctly", async () => {
-//   const tournaments = await liquipedia.aoe.getPlayer("TheViper");
+//   const tournaments = await liquipedia.aoe.getPlayer("MbL");
 
 //   await fs.writeFile(
 //     "./data/player.json",
@@ -37,7 +37,7 @@ const liquipedia = new Liquipedia({
 
 test("parses tournament correctly", async () => {
   const tournament = await liquipedia.aoe.getTournament(
-    "Mad_Random_Cup/2/Qualifier"
+    "Warlords/3/Showmatch/3"
   );
 
   await fs.writeFile(
@@ -52,11 +52,11 @@ test("parses tournament correctly", async () => {
 //   await fs.writeFile("./data/map.json", JSON.stringify(map, null, 2));
 // });
 
-test("parses live matches correctly", async () => {
-  const liveMatches = await liquipedia.aoe.getMatches();
+// test("parses live matches correctly", async () => {
+//   const liveMatches = await liquipedia.aoe.getMatches();
 
-  await fs.writeFile("./data/live.json", JSON.stringify(liveMatches, null, 2));
-});
+//   await fs.writeFile("./data/live.json", JSON.stringify(liveMatches, null, 2));
+// });
 
 // test("parses team tournament correctly", async () => {
 //   const tournament = await liquipedia.aoe.getTournament("Nations_Cup/2023");

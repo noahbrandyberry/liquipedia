@@ -33,6 +33,7 @@ import {
   parseAllParticipants,
   parseGroupMatch,
   parseGroupParticipant,
+  parseGroupRounds,
   parseMaps,
   parseMatchPopup,
   parseParticipant,
@@ -538,18 +539,36 @@ export class AOEParser {
     );
 
     const multipleGroups = htmlRoot.querySelector(
-      ".toggle-group, h3:has(#Group_Stage) + div"
+      ".toggle-group, h3:has(#Group_Stage) + div, h3:has(#Round_Robin_Stage) + div"
     );
     if (multipleGroups?.querySelector(".table-responsive")) {
       tournament.groups = parseAllGroups(multipleGroups);
+    } else if (
+      multipleGroups?.classList.contains("table-responsive") &&
+      (multipleGroups.nextElementSibling.classList.contains("matchlist") ||
+        multipleGroups.nextElementSibling.classList.contains("brkts-matchlist"))
+    ) {
+      tournament.groups.push({
+        name:
+          htmlRoot.querySelector(
+            "#Swiss_Stage, #Group_Stage , #Round_Robin_Stage"
+          )?.textContent ?? "Group Stage",
+        participants:
+          htmlRoot
+            .querySelector(".swisstable, .grouptable")
+            ?.querySelectorAll("tr:not(:first-child)")
+            .map(parseGroupParticipant) ?? [],
+        rounds: parseGroupRounds(multipleGroups.nextElementSibling),
+      });
     } else if (multipleGroups) {
       tournament.groups.push({
         name:
-          htmlRoot.querySelector("#Swiss_Stage, #Group_Stage")?.textContent ??
-          "Group Stage",
+          htmlRoot.querySelector(
+            "#Swiss_Stage, #Group_Stage , #Round_Robin_Stage"
+          )?.textContent ?? "Group Stage",
         participants:
           htmlRoot
-            .querySelector(".swisstable")
+            .querySelector(".swisstable, .grouptable")
             ?.querySelectorAll("tr:not(:first-child)")
             .map(parseGroupParticipant) ?? [],
         rounds:
@@ -935,7 +954,13 @@ export class AOEParser {
     if (attributes["Born"]?.[0]?.text) {
       const [birthdate, age] = attributes["Born"][0].text.split(" (");
 
-      player.birthdate = dateParse(birthdate, "MMMM d, y", new Date());
+      if (birthdate) {
+        player.birthdate = dateParse(
+          birthdate.replace(/ +/g, " "),
+          "MMMM d, y",
+          new Date()
+        );
+      }
 
       const parsedAge = Number(age.replace(/[^0-9]/g, ""));
 
@@ -960,7 +985,9 @@ export class AOEParser {
     }
 
     const bioElements = [];
-    let bioElement = htmlRoot.querySelector("h2:has(#Biography) + p");
+    let bioElement = htmlRoot.querySelector(
+      "h2:has(#Biography) + p, h2:has(#Overview) + p"
+    );
     while (bioElement && ["P", "H3", "DIV"].includes(bioElement.tagName)) {
       if (bioElement.tagName === "H3") {
         bioElements.push(bioElement.querySelector(".mw-headline"));

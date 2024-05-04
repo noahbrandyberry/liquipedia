@@ -333,7 +333,7 @@ export const parseGroupParticipant = (participant: HTMLElement) => {
   return groupParticipant;
 };
 
-const parseGroupRounds = (roundsTable: HTMLElement): Round[] => {
+export const parseGroupRounds = (roundsTable: HTMLElement): Round[] => {
   const rounds: Round[] = [];
 
   roundsTable?.querySelectorAll("tr, div").forEach((groupElement, index) => {
