@@ -107,11 +107,25 @@ export const parseMatchPopup = (popup: HTMLElement | null) => {
     ) * 1000
   );
 
+  const twitchStream = popup
+    ?.querySelector(
+      ".bracket-popup-body-time .timer-object, .match-countdown-block .timer-object"
+    )
+    ?.getAttribute("data-stream-twitch");
+
   const match: Omit<PlayoffMatch, "participants"> = {
-    links: [],
+    links: twitchStream
+      ? [
+          {
+            text: "Twitch",
+            url: `https://twitch.tv/${twitchStream
+              .toLowerCase()
+              .replace(/_/g, "")}`,
+          },
+        ]
+      : [],
     games: [],
     startTime: startTime && !isNaN(startTime.getTime()) ? startTime : undefined,
-    // twitchStream: twitchStream,
     note: NodeHtmlMarkdown.translate(
       popup?.querySelector(".bracket-popup-body-comment")?.toString() ?? ""
     ),

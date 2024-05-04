@@ -164,9 +164,16 @@ export class AOEParser {
         participants: [participant1, participant2],
         format: bestOf,
         startTime: new Date(startTimestamp),
-        twitchStream: twitchStream
-          ? `https://twitch.tv/${twitchStream.toLowerCase().replace(/_/g, "")}`
-          : undefined,
+        links: twitchStream
+          ? [
+              {
+                text: "Twitch",
+                url: `https://twitch.tv/${twitchStream
+                  .toLowerCase()
+                  .replace(/_/g, "")}`,
+              },
+            ]
+          : [],
         tournament: {
           name: tournament?.getAttribute("title") ?? "",
           path: getPath(tournament) ?? "",

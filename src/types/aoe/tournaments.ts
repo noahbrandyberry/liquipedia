@@ -128,7 +128,7 @@ export interface Event {
   participants: [EventParticipant, EventParticipant];
 }
 
-interface Link {
+export interface Link {
   url: string;
   image?: string;
   text: string;

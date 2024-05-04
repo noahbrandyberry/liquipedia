@@ -1,4 +1,4 @@
-import { EventParticipant } from "./tournaments";
+import { EventParticipant, Link } from "./tournaments";
 
 export type MatchTeam = {
   name: string;
@@ -17,7 +17,7 @@ export type Match = {
   format?: string;
   winner?: 0 | 1;
   startTime?: Date;
-  twitchStream?: string;
+  links: Link[];
   tournament: {
     name: string;
     image?: string;

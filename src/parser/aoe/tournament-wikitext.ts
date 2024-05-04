@@ -11,6 +11,41 @@ import {
 import { parse_wikitext, type WikiData } from "../../wikitext/parse";
 import { compact, flattenDepth, result, sortBy } from "lodash";
 
+const linkTypes = ["twitch", "youtube", "vod", "civdraft", "mapdraft"] as const;
+type LinkType = (typeof linkTypes)[number];
+
+const linkMap: Record<
+  LinkType,
+  { label: string; baseURL: string; imageUrl: string }
+> = {
+  twitch: {
+    label: "Twitch",
+    baseURL: "https://www.twitch.tv/",
+    imageUrl: "",
+  },
+  youtube: {
+    label: "Youtube",
+    baseURL: "https://www.youtube.com/",
+    imageUrl: "",
+  },
+  vod: {
+    label: "Watch VOD",
+    baseURL: "",
+    imageUrl:
+      "https://liquipedia.net/commons/images/thumb/b/b9/VOD_Icon.png/32px-VOD_Icon.png",
+  },
+  civdraft: {
+    label: "Civ Draft",
+    baseURL: "https://aoe2cm.net/draft/",
+    imageUrl: "https://liquipedia.net/commons/images/8/8a/Civ_Draft_Icon.png",
+  },
+  mapdraft: {
+    label: "Map Draft",
+    baseURL: "https://aoe2cm.net/draft/",
+    imageUrl: "https://liquipedia.net/commons/images/6/62/Map_Draft_Icon.png",
+  },
+};
+
 function removeEmpty(data: WikiData): WikiData {
   return data.reduce<WikiData>((acc, row) => {
     if (typeof row === "string") {
@@ -276,19 +311,16 @@ export const parseTournamentWikiText = (tournamentResponse: string) => {
                 startTime: isNaN(date.valueOf()) ? undefined : date,
                 bestOf: matchData["bestof"]?.toString(),
                 links: Object.entries(matchData)
-                  .filter(([key]) =>
-                    [
-                      "twitch",
-                      "youtube",
-                      "vod",
-                      "civdraft",
-                      "mapdraft",
-                    ].includes(key)
-                  )
-                  .map(([key, value]) => ({
-                    text: key,
-                    url: value?.toString() ?? "",
-                  })),
+                  .filter(([key]) => linkTypes.includes(key as LinkType))
+                  .map(([key, value]) => {
+                    const linkData = linkMap[key as LinkType];
+
+                    return {
+                      text: linkData.label,
+                      image: linkData.imageUrl,
+                      url: `${linkData.baseURL}${value?.toString() ?? ""}`,
+                    };
+                  }),
                 participants: compact([
                   participant1
                     ? {
