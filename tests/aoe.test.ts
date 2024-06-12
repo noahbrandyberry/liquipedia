@@ -37,7 +37,7 @@ const liquipedia = new Liquipedia({
 
 test("parses tournament correctly", async () => {
   const tournament = await liquipedia.aoe.getTournament(
-    "Warlords/3/Showmatch/3"
+    "Red_Bull_Wololo/El_Reinado/AoE2"
   );
 
   await fs.writeFile(

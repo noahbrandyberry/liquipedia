@@ -119,6 +119,7 @@ export interface EventParticipant {
   name: string;
   score?: number | string;
   image?: string;
+  note?: string;
 }
 
 export interface Event {

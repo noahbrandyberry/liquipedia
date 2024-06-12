@@ -260,8 +260,11 @@ export const parseAllParticipants = (
     .querySelectorAll(".player-row td, .participantTable-entry")
     .map((participant) => {
       return {
-        name: participant.textContent.trim(),
+        name:
+          participant.querySelector(".name a")?.textContent.trim() ||
+          participant.textContent.trim(),
         image: imageUrl(participant.querySelector(".flag img")),
+        note: participant.querySelector(".note")?.textContent,
       };
     })
     .filter((participant) => participant.name);
@@ -269,30 +272,34 @@ export const parseAllParticipants = (
 
 export const parseAllGroups = (groupsElement: HTMLElement | null): Group[] => {
   return (
-    groupsElement?.querySelectorAll(".table-responsive").map((groupElement) => {
-      const name =
-        (groupElement.previousElementSibling?.querySelector(".mw-headline")
-          ?.textContent ||
-          groupElement.querySelector("tr th > span")?.textContent) ??
-        "";
-      const hasRounds =
-        groupElement.nextElementSibling &&
-        (groupElement.nextElementSibling.classList.contains("matchlist") ||
-          groupElement.nextElementSibling.classList.contains(
-            "brkts-matchlist"
-          ));
-      const rounds = hasRounds
-        ? parseGroupRounds(groupElement.nextElementSibling)
-        : [];
+    groupsElement
+      ?.querySelectorAll(
+        ".table-responsive:not(h3:has(#Country_Representation) + div)"
+      )
+      .map((groupElement) => {
+        const name =
+          (groupElement.previousElementSibling?.querySelector(".mw-headline")
+            ?.textContent ||
+            groupElement.querySelector("tr th > span")?.textContent) ??
+          "";
+        const hasRounds =
+          groupElement.nextElementSibling &&
+          (groupElement.nextElementSibling.classList.contains("matchlist") ||
+            groupElement.nextElementSibling.classList.contains(
+              "brkts-matchlist"
+            ));
+        const rounds = hasRounds
+          ? parseGroupRounds(groupElement.nextElementSibling)
+          : [];
 
-      return {
-        name,
-        participants: groupElement
-          .querySelectorAll("tr:not(:first-child)")
-          .map(parseGroupParticipant),
-        rounds,
-      };
-    }) ?? []
+        return {
+          name,
+          participants: groupElement
+            .querySelectorAll("tr:not(:first-child)")
+            .map(parseGroupParticipant),
+          rounds,
+        };
+      }) ?? []
   );
 };
 

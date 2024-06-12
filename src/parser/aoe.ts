@@ -698,7 +698,8 @@ export class AOEParser {
       });
 
     const participantNoteElement =
-      participantsTable?.parentNode.nextElementSibling;
+      participantsTable?.parentNode.nextElementSibling ??
+      participantsTable?.nextElementSibling;
 
     if (participantNoteElement?.tagName.toLowerCase() === "p") {
       tournament.participantsNote = NodeHtmlMarkdown.translate(
