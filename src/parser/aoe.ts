@@ -548,7 +548,34 @@ export class AOEParser {
     const multipleGroups = htmlRoot.querySelector(
       ".toggle-group, h3:has(#Group_Stage) + div, h3:has(#Round_Robin_Stage) + div"
     );
-    if (multipleGroups?.querySelector(".table-responsive")) {
+
+    if (
+      htmlRoot.querySelector("h3:has(#Group_Stage) + h4 + h5:has(#Standings)")
+    ) {
+      let pointer = htmlRoot.querySelector("h3:has(#Group_Stage) + h4");
+
+      while (pointer?.nextElementSibling.tagName.toLowerCase() === "h5") {
+        const name = pointer.querySelector("span")?.textContent ?? "";
+        pointer = pointer.nextElementSibling?.nextElementSibling;
+        if (
+          pointer.tagName.toLowerCase() === "div" &&
+          pointer.classList.contains("table-responsive")
+        ) {
+          const div =
+            pointer.nextElementSibling.nextElementSibling.querySelector(
+              ":first-child"
+            );
+          tournament.groups.push({
+            name,
+            participants: pointer
+              .querySelectorAll("tr:not(:first-child)")
+              .map(parseGroupParticipant),
+            rounds: div ? parseGroupRounds(div) : [],
+          });
+          pointer = div?.nextElementSibling ?? null;
+        }
+      }
+    } else if (multipleGroups?.querySelector(".table-responsive")) {
       tournament.groups = parseAllGroups(multipleGroups);
     } else if (
       multipleGroups?.classList.contains("table-responsive") &&

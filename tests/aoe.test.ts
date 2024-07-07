@@ -36,9 +36,7 @@ const liquipedia = new Liquipedia({
 // });
 
 test("parses tournament correctly", async () => {
-  const tournament = await liquipedia.aoe.getTournament(
-    "Red_Bull_Wololo/El_Reinado/AoE2"
-  );
+  const tournament = await liquipedia.aoe.getTournament("Rage_Forest/5");
 
   await fs.writeFile(
     "./data/tournament.json",

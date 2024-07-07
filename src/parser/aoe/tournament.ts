@@ -391,9 +391,10 @@ export const parseGroupMatch = (groupElement: HTMLElement): PlayoffMatch => {
   const [score1, score2] = groupElement
     .querySelectorAll("td:not(.matchlistslot), .brkts-matchlist-score")
     .map((scoreElement) => {
-      const scoreText = scoreElement.childNodes.find(
-        (node) => node.nodeType === 3
-      )?.textContent;
+      const scoreText = scoreElement.classList.contains("brkts-matchlist-score")
+        ? scoreElement.textContent
+        : scoreElement.childNodes.find((node) => node.nodeType === 3)
+            ?.textContent;
       const score = isNaN(Number(scoreText)) ? scoreText : Number(scoreText);
       return score;
     });
