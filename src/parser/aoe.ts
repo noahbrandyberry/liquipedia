@@ -967,6 +967,10 @@ export class AOEParser {
     return items;
   }
 
+  parsePlayerOverview(overviewHtml: string): string {
+    return NodeHtmlMarkdown.translate(overviewHtml);
+  }
+
   parsePlayer(playerResponse: string): Player {
     const htmlRoot = parse(playerResponse);
 

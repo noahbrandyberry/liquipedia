@@ -37,6 +37,11 @@ export class AOEClient {
     return this.parser.parsePlayer(response.parse.text["*"]);
   }
 
+  async getPlayerOverview(name: string): Promise<String> {
+    const response = await this.api.queryPlayerOverview(name);
+    return this.parser.parsePlayerOverview(response.query.pages[0].extract);
+  }
+
   async getTeams(): Promise<Team[]> {
     const response = await this.api.getTeams();
     return this.parser.parseTeams(response.parse.text["*"]);
