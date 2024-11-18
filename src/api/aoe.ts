@@ -25,6 +25,10 @@ export class AOEApi {
     return this.request.get(name);
   }
 
+  queryPlayerOverview(name: string) {
+    return this.request.query(name);
+  }
+
   getTeams() {
     return this.request.get("Portal:Teams");
   }

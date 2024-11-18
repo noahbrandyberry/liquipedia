@@ -22,6 +22,23 @@ export type Response = {
   };
 };
 
+export type QueryResponse = {
+  batchcomplete: boolean
+  warnings: {
+    extracts: {
+      warnings: string
+    }
+  }
+  query: {
+    pages: Array<{
+      pageid: number
+      ns: number
+      title: string
+      extract: string
+    }>
+  }
+};
+
 export default interface RequestClient {
   get(request: RequestOptions): Promise<Response>;
 }
