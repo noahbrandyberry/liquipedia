@@ -48,6 +48,66 @@ import { getAttributes } from "../data/attributes";
 import { MapDetail } from "../types/aoe/map";
 
 export class AOEParser {
+  private parseTournamentDates(datesText?: string): {
+    start?: Date;
+    end?: Date;
+  } {
+    const dates = datesText
+      ?.replace(/\u00a0/g, " ")
+      .replace(/[–—]/g, "-")
+      .replace(/\s*-\s*/g, " - ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (!dates) {
+      return {};
+    }
+
+    const parseDateString = (value: string) =>
+      dateParse(value, "MMM d y", new Date());
+
+    let match = dates.match(/^([A-Za-z]{3}) (\d{1,2}), (\d{4})$/);
+    if (match) {
+      const [, month, day, year] = match;
+      const start = parseDateString(`${month} ${day} ${year}`);
+      return { start, end: start };
+    }
+
+    match = dates.match(/^([A-Za-z]{3}) (\d{1,2}) - (\d{1,2}), (\d{4})$/);
+    if (match) {
+      const [, month, startDay, endDay, year] = match;
+      return {
+        start: parseDateString(`${month} ${startDay} ${year}`),
+        end: parseDateString(`${month} ${endDay} ${year}`),
+      };
+    }
+
+    match = dates.match(
+      /^([A-Za-z]{3}) (\d{1,2}) - ([A-Za-z]{3}) (\d{1,2}), (\d{4})$/
+    );
+    if (match) {
+      const [, startMonth, startDay, endMonth, endDay, year] = match;
+      return {
+        start: parseDateString(`${startMonth} ${startDay} ${year}`),
+        end: parseDateString(`${endMonth} ${endDay} ${year}`),
+      };
+    }
+
+    match = dates.match(
+      /^([A-Za-z]{3}) (\d{1,2}), (\d{4}) - ([A-Za-z]{3}) (\d{1,2}), (\d{4})$/
+    );
+    if (match) {
+      const [, startMonth, startDay, startYear, endMonth, endDay, endYear] =
+        match;
+      return {
+        start: parseDateString(`${startMonth} ${startDay} ${startYear}`),
+        end: parseDateString(`${endMonth} ${endDay} ${endYear}`),
+      };
+    }
+
+    return {};
+  }
+
   parseTeams(teamsResponse: string): Team[] {
     const htmlRoot = parse(teamsResponse);
     const parent = htmlRoot.querySelector(".lp-container-fluid"); // only active teams
@@ -215,12 +275,146 @@ export class AOEParser {
     tournamentsResponse: string,
     category?: TournamentCategory
   ): TournamentSection[] {
-    const tournamentSections: TournamentSection[] = [];
-
     const htmlRoot = parse(tournamentsResponse);
-
     const tournamentSectionBoxes = htmlRoot.querySelectorAll(".tournamentCard");
 
+    if (tournamentSectionBoxes.length === 0) {
+      const tournamentSections: TournamentSection[] = [];
+      const headings = htmlRoot.querySelectorAll(".mw-heading2, .mw-heading3");
+
+      for (const heading of headings) {
+        const sectionTitle = heading
+          .querySelector("h2, h3")
+          ?.textContent?.trim();
+
+        if (!sectionTitle) {
+          continue;
+        }
+
+        let sibling = heading.nextElementSibling;
+        while (sibling) {
+          const classes = sibling.classNames;
+          if (classes.includes("mw-heading2") || classes.includes("mw-heading3")) {
+            break;
+          }
+
+          const rows = sibling.querySelectorAll("tbody tr");
+          if (rows.length > 0) {
+            const data: Tournament[] = [];
+
+            for (const row of rows) {
+              if (row.querySelector("th")) {
+                continue;
+              }
+
+              const cells = row.querySelectorAll("td");
+              if (cells.length < 5) {
+                continue;
+              }
+
+              const tier =
+                (getPath(cells[0].querySelector("a")) as
+                  | TournamentCategory
+                  | undefined) || category;
+              const game = (cells[1]
+                .querySelector("a")
+                ?.getAttribute("title") ?? "") as GameVersion;
+              const leagueImage = cells[2]?.querySelector("img");
+              const tourLink = cells[3]?.querySelector("a");
+              const name = tourLink?.textContent?.trim();
+              const path = getPath(tourLink) ?? "";
+              const dates = cells[4]?.textContent?.trim();
+              const prizePool = cells[5]?.textContent?.trim();
+              const participantsCount = parseInt(
+                cells[7]?.textContent?.trim() || "0",
+                10
+              );
+              const locationName = cells[6]?.textContent?.replace(/\s+/g, " ").trim();
+              const locationCountry =
+                cells[6]?.querySelector(".flag img")?.getAttribute("alt") ?? "";
+
+              const participantCells = cells.slice(8);
+              const participants: Tournament["participants"] = participantCells
+                .flatMap((cell) => {
+                  const names = cell
+                    .querySelectorAll(".name")
+                    .map((element) => element.textContent.trim())
+                    .filter((participant) => participant && participant !== "TBD");
+
+                  if (names.length > 0) {
+                    return names.map((participant) => ({ name: participant }));
+                  }
+
+                  const fallback = cell.textContent.replace(/\s+/g, " ").trim();
+                  return fallback && fallback !== "TBD"
+                    ? [{ name: fallback }]
+                    : [];
+                });
+
+              let type = TournamentType.Unknown;
+              if (participantCells.some((cell) => !!cell.querySelector(".block-player"))) {
+                type = TournamentType.Individual;
+              } else if (
+                participantCells.some((cell) => !!cell.querySelector(".block-team"))
+              ) {
+                type = TournamentType.Team;
+              }
+
+              if (!tier || !tourLink || !name || !path || !dates) {
+                continue;
+              }
+
+              const { start, end } = this.parseTournamentDates(dates);
+              const prizePoolNumber = Number(
+                prizePool?.replace(/[^\d.]/g, "").replace(/,/g, "")
+              );
+
+              data.push({
+                game,
+                type,
+                tier,
+                name,
+                start,
+                end,
+                prizePool: isNaN(prizePoolNumber)
+                  ? undefined
+                  : { amount: prizePoolNumber, code: "USD" },
+                participants,
+                participantsCount: isNaN(participantsCount)
+                  ? 0
+                  : participantsCount,
+                location: locationName
+                  ? {
+                      name: locationName,
+                      country: getCountryByName(locationCountry),
+                      type:
+                        locationCountry === "World"
+                          ? TournamentLocationType.Online
+                          : TournamentLocationType.LAN,
+                    }
+                  : undefined,
+                league: leagueImage
+                  ? {
+                      name: leagueImage.getAttribute("alt") ?? name,
+                      image: imageUrl(leagueImage),
+                    }
+                  : undefined,
+                path,
+              });
+            }
+
+            tournamentSections.push({ title: sectionTitle, data });
+            break;
+          }
+
+          sibling = sibling.nextElementSibling;
+        }
+      }
+
+      return tournamentSections;
+    }
+
+    const tournamentSections: TournamentSection[] = [];
     for (const tournamentSection of tournamentSectionBoxes) {
       const data: Tournament[] = [];
       const sectionTitle =
@@ -290,45 +484,9 @@ export class AOEParser {
           }
         }
 
-        let start: Tournament["start"] = undefined;
-        let end: Tournament["end"] = undefined;
+        const { start, end } = this.parseTournamentDates(dates);
 
-        if (dates) {
-          const [startPart, endPart] = dates.split(" - ");
-          const [startMonth] = startPart.split(" ");
-          const startYear = startPart.split(" ").pop();
-          const startDay = startPart.match(/^\d+|\d+\b|\d+(?=\w)/g)?.[0];
-          const differentYear = startYear?.length === 4;
-          start = dateParse(
-            `${startMonth} ${startDay} ${
-              differentYear ? startYear : endPart.split(" ").pop()
-            }`,
-            "MMM d y",
-            new Date()
-          );
-
-          if (endPart) {
-            const [endMonth] = endPart.split(" ");
-            const endYear = endPart.split(" ").pop();
-            const endDay = endPart.match(/^\d+|\d+\b|\d+(?=\w)/g)?.[0];
-            const differentMonth = /^[a-zA-Z]+$/.test(endMonth);
-
-            end = dateParse(
-              `${differentMonth ? endMonth : startMonth} ${endDay} ${endYear}`,
-              "MMM d y",
-              new Date()
-            );
-          }
-        }
-
-        if (
-          !tier ||
-          !tourLink ||
-          !name ||
-          !path ||
-          !dates ||
-          !participantsCount
-        ) {
+        if (!tier || !tourLink || !name || !path || !dates) {
           continue;
         }
 
@@ -347,7 +505,7 @@ export class AOEParser {
             ? undefined
             : { amount: prizePoolNumber, code: "USD" },
           participants,
-          participantsCount,
+          participantsCount: isNaN(participantsCount) ? 0 : participantsCount,
           location: locationName
             ? {
                 name: locationName,
